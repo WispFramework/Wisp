@@ -1,0 +1,8 @@
+{
+    "Wisp": {
+        "Host": "0.0.0.0",
+        "Port": 6969,
+        "LogLevel": "Debug",
+        "StaticFileRoot": "wwwroot"
+    }
+}

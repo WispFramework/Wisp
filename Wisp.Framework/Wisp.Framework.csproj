@@ -1,0 +1,55 @@
+﻿<!--
+This file is part of Wisp Framework.
+
+Licensed under either of
+  * Apache License, Version 2.0 (https://www.apache.org/licenses/LICENSE-2.0)
+  * MIT License (https://opensource.org/licenses/MIT)
+at your option.
+-->
+
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+
+
+    <PackageId>Wisp.Framework.Core</PackageId>
+    <Version>1.0.1</Version>
+    <Authors>Jakub Sycha (utf-8x)</Authors>
+    <Company>Wisp</Company>
+    <Description>A super-fast, lightweight, embeddable web framework with zero ASP.NET Core dependencies.</Description>
+    <PackageProjectUrl>https://github.com/utf-8x/wisp</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/utf-8x/wisp.git</RepositoryUrl>
+    <RespositoryType>git</RespositoryType>
+    <PackageTags>web;framework;lightweight</PackageTags>
+    <PackageLicenseExpression>MIT OR Apache-2.0</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- <FrameworkReference Include="Microsoft.AspNetCore.App" /> -->
+    <PackageReference Include="Fluid.Core" Version="2.25.0" />
+    <PackageReference Include="Fluid.ViewEngine" Version="2.25.0" />
+    <PackageReference Include="microsoft.extensions.configuration" Version="9.0.7" />
+    <PackageReference Include="microsoft.extensions.configuration.binder" Version="9.0.7" />
+    <PackageReference Include="microsoft.extensions.configuration.json" Version="9.0.7" />
+    <PackageReference Include="microsoft.extensions.dependencyinjection" Version="9.0.7" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="9.0.0" />
+    <PackageReference Include="microsoft.extensions.options" Version="9.0.7" />
+    <PackageReference Include="netcoreserver" Version="8.0.7" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="wisp.application.json" CopyToOutputDirectory="Always" />
+    <None Update="..\README.md" Pack="True" PackagePath="/" />
+  </ItemGroup>
+
+</Project>
