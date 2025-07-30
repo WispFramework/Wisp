@@ -49,7 +49,7 @@ at your option.
 
   <ItemGroup>
     <None Include="wisp.application.json" CopyToOutputDirectory="Always" />
-    <None Update="..\README.md" Pack="True" PackagePath="/" />
+    <None Include="..\README.md" Pack="True" PackagePath="\" />
   </ItemGroup>
 
 </Project>
