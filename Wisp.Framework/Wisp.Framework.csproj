@@ -48,7 +48,7 @@ at your option.
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="wisp.application.json" CopyToOutputDirectory="Always" />
+    <None Include="wisp.application.json" CopyToOutputDirectory="Always" CopyToPublishDirectory="Always" />
     <None Include="..\README.md" Pack="True" PackagePath="\" />
   </ItemGroup>
 
