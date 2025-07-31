@@ -6,6 +6,8 @@
 [![GitHub Issues or Pull Requests](https://img.shields.io/github/issues/UTF-8x/Wisp)](https://github.com/utf-8x/wisp/issues)
 [![GitHub Issues or Pull Requests](https://img.shields.io/github/issues-pr/UTF-8x/Wisp)](https://github.com/utf-8x/wisp/pulls)
 
+> **Warning!** Wisp is in very early stages of development and production use is not recommended.
+
 Wisp is an open-source, cross-platform, embeddable web framework for building small, lightweight
 applications. It does not depend on any part of the ASP.NET Core SDK, runs on any platform supported
 by .NET Core and works with any .NET language. It's specifically designed for embedding in existing
