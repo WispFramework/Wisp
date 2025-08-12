@@ -31,6 +31,7 @@ public class Router(ILogger<Router> log)
         {"DELETE", new Dictionary<Regex, RequestHandler>()},
         {"OPTIONS", new Dictionary<Regex, RequestHandler>()},
         {"HEAD", new Dictionary<Regex, RequestHandler>()},
+        {"QUERY", new Dictionary<Regex, RequestHandler>()}
     };
 
     /// <summary>
@@ -44,7 +45,7 @@ public class Router(ILogger<Router> log)
         var method = request.Method;
         var uri = request.Path;
 
-        if (string.IsNullOrWhiteSpace(method)) throw new Exception("the HTTP context has a fucked up method");
+        if (string.IsNullOrWhiteSpace(method)) throw new Exception("the HTTP context does not contain a method");
 
         log.LogDebug("Trying to handle {Method} route for {Uri}", method, uri);
         
