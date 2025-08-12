@@ -1,0 +1,18 @@
+name: Wisp
+id: ari:cloud:compass:c6f544a2-f192-46d5-8bcd-e57de8c39c95:component/dbac6377-11e0-4d6d-9176-00d819aaca43/f3a68bb3-ca62-4cc3-9d27-3d19874d596c
+description: An opinionated, embeddable, C# web microframework
+configVersion: 1
+typeId: LIBRARY
+ownerId: null
+fields:
+  tier: 4
+links:
+  - name: null
+    type: REPOSITORY
+    url: https://github.com/WispFramework/Wisp
+relationships:
+  DEPENDS_ON: []
+labels:
+  - language:c#
+  - source:github
+customFields: null
