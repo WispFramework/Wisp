@@ -6,12 +6,13 @@
 // at your option.
 
 using System.Reflection;
-using System.Text;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Wisp.Framework.Extensions;
 using Wisp.Framework.Http;
 using Wisp.Framework.Middleware.Auth;
 using Wisp.Framework.Views;
+using static Wisp.Framework.Utils;
 
 namespace Wisp.Framework.Controllers;
 
@@ -21,8 +22,8 @@ namespace Wisp.Framework.Controllers;
 public class ControllerRegistrar
 {
     public static void RegisterControllers(
-        Router router, 
-        IServiceProvider serviceProvider, 
+        Router router,
+        IServiceProvider serviceProvider,
         ILogger<ControllerRegistrar> log,
         TemplateRenderer renderer,
         IAuthenticator? authenticator = null,
@@ -37,83 +38,147 @@ public class ControllerRegistrar
 
         foreach (var controllerType in controllers)
         {
-            
+
             var controllerInstance = ActivatorUtilities.CreateInstance(serviceProvider, controllerType);
 
             foreach (var method in controllerType.GetMethods(BindingFlags.Public | BindingFlags.Instance))
             {
                 var routeAttr = method.GetCustomAttribute<RouteAttribute>();
-                if(routeAttr == null) continue;
+                if (routeAttr == null) continue;
 
                 var authAttr = method.GetCustomAttribute<AuthorizeAttribute>();
 
                 Router.RequestHandler handler = async context =>
                 {
-                    if (authAttr is not null && authenticator is not null)
-                    {
-                        var isAuthOk = await authenticator.AuthenticateRoute(authAttr.Role);
+                    if (!await AuthenticateAsync(context, authAttr, authenticator, authConfig, routeAttr, log)) return;
 
-                        if (!isAuthOk)
-                        {
-                            if (authConfig != null)
-                            {
-                                context.Response.StatusCode = 307;
-                                context.Response.Headers.Add("Location", authConfig.FailureRedirectUri);
-                            }
-                            else
-                            {
-                                context.Response.StatusCode = 401;
-                                context.Response.Body.Write(Encoding.UTF8.GetBytes("Unauthorized"));    
-                            }
-                            
-                            return;
-                        }
+                    var args = BuildControllerArgs(method, serviceProvider);
+                    var result = await InvokeControllerAsync(method, controllerInstance, args);
+
+                    EnsureResultBox(result, method, controllerInstance);
+
+                    if (result is ViewResult viewResult)
+                    {
+                        await WriteViewResponseAsync(context, viewResult, renderer);
                     }
                     else
-                        log.LogDebug("not checking authentication for {Route} because it doesn't have an [Authorize] attribute or there is no authenticator registered", routeAttr.Route);
-                    
-                    var parms = method.GetParameters();
-                    var args = parms
-                        .Select(p => serviceProvider.GetService(p.ParameterType) ?? GetDefault(p.ParameterType))
-                        .ToArray();
-                    
-                    var result = method.Invoke(controllerInstance, args);
-                    
-                    IView? view = null;
-                    if (result is Task<IView> viewTask)
                     {
-                        view = await viewTask;
-                    }
-                    else if (result is IView v)
-                    {
-                        view = v;
+                        await WriteBoxResponseAsync(context, result!);
                     }
 
-                    if (view is null)
-                    {
-                        context.Response.StatusCode = 404;
-                        context.Response.Body = new MemoryStream("Not Found"u8.ToArray());
-                        return;
-                    }
-
-                    if (view.IsRedirect)
-                    {
-                        context.Response.StatusCode = 302;
-                        context.Response.Headers["Location"] = view.RedirectUri ?? "/";
-                        return;
-                    }
-
-                    var content = await renderer.Render(view.TemplateName, view.Model, context);
-                    
                     context.Response.StatusCode = 200;
-                    context.Response.ContentType = "text/html";
-                    context.Response.Body = new MemoryStream(Encoding.UTF8.GetBytes(content));
                 };
-                
+
                 router.Add(routeAttr.Method, routeAttr.Route, handler);
             }
         }
     }
-    
+
     private static object? GetDefault(Type t) => t.IsValueType ? Activator.CreateInstance(t) : null;
+
+    private static async Task<bool> AuthenticateAsync(
+        IHttpContext context,
+        AuthorizeAttribute? authAttr,
+        IAuthenticator? authenticator,
+        IAuthConfig? authConfig,
+        RouteAttribute routeAttr,
+        ILogger log)
+    {
+
+        if (authAttr is null)
+        {
+            log.LogDebug("Not checking authentication for {Route} because it doesn't have an [Authorize] attribute", routeAttr.Route);
+            return true;
+        }
+
+        if (authenticator is null)
+        {
+            log.LogDebug("Not checking authentication for {Route} because there's no IAuthenticator registered", routeAttr.Route);
+            return true;
+        }
+
+        if (!await authenticator.AuthenticateRoute(authAttr.Role))
+        {
+            if (authConfig is not null)
+            {
+                context.Response.StatusCode = 307;
+                context.Response.Headers.Add("Location", authConfig.FailureRedirectUri);
+            }
+            else
+            {
+                context.Response.StatusCode = 401;
+                context.Response.Body.Write("401 Unauthorized".AsUtf8Bytes());
+            }
+
+            return false;
+        }
+
+        return true;
+    }
+
+    private static object?[] BuildControllerArgs(MethodInfo method, IServiceProvider serviceProvider)
+        => method.GetParameters()
+            .Select(p => serviceProvider.GetService(p.ParameterType) ?? GetDefault(p.ParameterType))
+            .ToArray();
+
+    private static async Task<object?> InvokeControllerAsync(MethodInfo method, object controllerInstance, object?[] args)
+    {
+        var result = method.Invoke(controllerInstance, args)
+            ?? throw new ArgumentException($"controller {controllerInstance.GetType().Name}#{method.Name} returned null");
+
+        if (IsUnboundGenericInstance(result, typeof(Task<>)))
+        {
+            var task = (Task)result;
+            await task;
+            var resultProp = task.GetType().GetProperty("Result");
+            return resultProp?.GetValue(task);
+        }
+
+        return result;
+    }
+
+    private static void EnsureResultBox(object? result, MethodInfo method, object controllerInstance)
+    {
+        if (result is null)
+            throw new ArgumentException($"could not parse controller result for {controllerInstance.GetType().Name}#{method.Name}");
+
+        if (!IsUnboundGenericInstance(result, typeof(IResultBox<>)))
+            throw new ArgumentException($"controller {controllerInstance.GetType().Name}#{method.Name} did not return an implementation of IResultBox<>");
+    }
+
+    private static async Task WriteViewResponseAsync(IHttpContext context, ViewResult viewResult, TemplateRenderer renderer)
+    {
+        // TODO: [WISP-5] Custom Error Pages
+        var view = viewResult.Value;
+
+        if (view is null)
+        {
+            context.Response.StatusCode = 404;
+            context.Response.Body.Write("Not Found".AsUtf8Bytes());
+            return;
+        }
+
+        if (view.IsRedirect)
+        {
+            context.Response.StatusCode = 302;
+            context.Response.Headers["Location"] = view.RedirectUri ?? "/";
+            return;
+        }
+
+        var content = await renderer.Render(view.TemplateName, view.Model, context);
+        context.Response.ContentType = "text/html";
+        context.Response.Body = new MemoryStream(content.AsUtf8Bytes());
+    }
+
+    private static async Task WriteBoxResponseAsync(IHttpContext context, object box)
+    {
+        var valueProp = box.GetType().GetProperty("Value");
+        var value = valueProp?.GetValue(box)
+            ?? throw new ArgumentException("the IResultBox<> value is null");
+
+        var (serialized, isSimple) = ControllerResultSerializer.Serialize(value);
+
+        context.Response.ContentType = isSimple ? "text/plain" : "application/json";
+        context.Response.Body = new MemoryStream(serialized.AsUtf8Bytes());
+    }
 }

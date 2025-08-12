@@ -10,7 +10,7 @@ namespace Wisp.Demo.Controllers;
 public class AuthController(AuthService authService, FlashService flashService) : ControllerBase
 {
     [Route("/auth/login")]
-    public async Task<IView> GetLogin(IHttpContextAccessor accessor)
+    public async Task<ViewResult> GetLogin(IHttpContextAccessor accessor)
     {
         var context = await accessor.HttpContext;
         var error = context?.Request.QueryParams.GetValueOrDefault("error");
@@ -19,7 +19,7 @@ public class AuthController(AuthService authService, FlashService flashService) 
     }
     
     [Route("/auth/login", "POST")]
-    public async Task<IView> PostLogin(IHttpContextAccessor accessor)
+    public async Task<ViewResult> PostLogin(IHttpContextAccessor accessor)
     {
         var context = await accessor.HttpContext;
         
@@ -37,7 +37,7 @@ public class AuthController(AuthService authService, FlashService flashService) 
     }
 
     [Route("/auth/signup", "POST")]
-    public async Task<IView> Signup(IHttpContextAccessor accessor)
+    public async Task<ViewResult> Signup(IHttpContextAccessor accessor)
     {
         var context = await accessor.HttpContext;
         
@@ -54,7 +54,7 @@ public class AuthController(AuthService authService, FlashService flashService) 
     }
     
     [Route("/auth/logout")]
-    public async Task<IView> Logout(IHttpContext context)
+    public async Task<ViewResult> Logout(IHttpContext context)
     {
         await authService.Logout();
         await flashService.AddFlashMessage("Goodbye!", FlashService.FlashMessageType.Success);

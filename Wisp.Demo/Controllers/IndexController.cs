@@ -10,28 +10,40 @@ namespace Wisp.Demo.Controllers;
 public class IndexController(IAuthenticator authenticator, FlashService flashService) : ControllerBase
 {
     [Route("/")]
-    public async Task<IView> GetIndex(IHttpContextAccessor accessor)
+    public async Task<ViewResult> GetIndex(IHttpContextAccessor accessor)
     {
         var context = await accessor.HttpContext;
-        
+
         var session = context.Session;
-        
+
         var error = context.Request.QueryParams.GetValueOrDefault("error");
-        
+
         return View("index", new { session = session?.Id ?? "none", error });
     }
 
     [Route("/private")]
     [Authorize]
-    public Task<IView> GetPrivate()
+    public Task<ViewResult> GetPrivate()
     {
         return Task.FromResult(View("private"));
     }
 
     [Route("/unauthorized")]
-    public Task<IView> GetUnauthorized()
+    public Task<ViewResult> GetUnauthorized()
     {
         return Task.FromResult(View("unauthorized"));
+    }
+
+    [Route("/simple-result")]
+    public Task<ResultBox<string>> SimpleResultDemo()
+    {
+        return Task.FromResult(new ResultBox<string>("Hello World"));
+    }
+
+    [Route("/serialized-result")]
+    public Task<ResultBox<object>> SerializedResultDemo()
+    {
+        return Task.FromResult(new ResultBox<object>(new { Hello = "World" }));
     }
 
 }

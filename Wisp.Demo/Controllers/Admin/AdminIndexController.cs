@@ -9,7 +9,7 @@ public class AdminIndexController : ControllerBase
 {
     [Route("/admin")]
     [Authorize("admin")]
-    public async Task<IView> GetIndex()
+    public async Task<ViewResult> GetIndex()
     {
         return View("admin/index");
     }

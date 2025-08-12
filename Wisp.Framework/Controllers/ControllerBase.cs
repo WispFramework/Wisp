@@ -14,9 +14,9 @@ namespace Wisp.Framework.Controllers;
 /// </summary>
 public abstract class ControllerBase
 {
-    protected internal IView View(string templateName, object? model = null)
-        => new TemplateView(templateName, model);
+    protected internal ViewResult View(string templateName, object? model = null)
+        => new ViewResult(new TemplateView(templateName, model));
 
-    protected internal IView Redirect(string url)
-        => new TemplateView(url);
+    protected internal ViewResult Redirect(string url)
+        => new ViewResult(new TemplateView(url));
 }

@@ -13,7 +13,7 @@ public class AdminPostsController(PostsService ps, FlashService flashService) : 
 {
     [Authorize("admin")]
     [Route("/admin/posts")]
-    public async Task<IView> GetIndex()
+    public async Task<ViewResult> GetIndex()
     {
         var allPosts = await ps.GetPostsAsync();
         
@@ -22,7 +22,7 @@ public class AdminPostsController(PostsService ps, FlashService flashService) : 
 
     [Authorize("admin")]
     [Route("/admin/posts/new")]
-    public async Task<IView> GetNewPost()
+    public async Task<ViewResult> GetNewPost()
     {
         return View("admin/posts/new");
     }
