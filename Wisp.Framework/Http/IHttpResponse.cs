@@ -5,6 +5,8 @@
 //   * MIT License (https://opensource.org/licenses/MIT)
 // at your option.
 
+using System.Text.Json.Serialization;
+
 namespace Wisp.Framework.Http;
 
 /// <summary>
@@ -37,5 +39,6 @@ public interface IHttpResponse
     /// <summary>
     /// The response body
     /// </summary>
+    [JsonIgnore]
     Stream Body { get; set; }
 }

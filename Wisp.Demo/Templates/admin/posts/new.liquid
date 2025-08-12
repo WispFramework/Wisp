@@ -1,0 +1,89 @@
+{% layout 'admin/_layout' %}
+
+<div class="container-xl">
+    <!-- Page title -->
+    <div class="page-header text-white d-print-none">
+        <div class="row align-items-center">
+            <div class="col">
+                <!-- Page pre-title -->
+                <div class="page-pretitle">
+                    Wisp Admin
+                </div>
+                <h2 class="page-title">
+                    New Post
+                </h2>
+            </div>
+            <!-- Page title actions -->
+            <div class="col-auto ml-auto d-print-none">
+                <div class="btn-list">
+                    <a href="/admin/posts/new" class="btn btn-primary d-none d-sm-inline-block" >
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+                        New Post
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row row-deck row-cards">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    {% if flash_messages %}
+                        {% for message in flash_messages %}
+                            <div class="alert alert-{{ message.type }}">{{ message.message }}</div>
+                        {% endfor %}
+                    {% endif %}
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Post Title</label>
+                        <input type="text" class="form-control" name="title" id="title" placeholder="Input placeholder">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Post Slug</label>
+                        <input type="text" class="form-control" disabled name="slug" placeholder="Slug" id="slug">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label" for="content">Content</label>
+                        <textarea name="content" id="content" cols="30" rows="10"></textarea>
+                    </div>
+                </div>
+                <div class="card-footer text-right">
+                    <div class="d-flex">
+                        <a href="#" class="btn btn-link">Cancel</a>
+                        <button type="submit" class="btn btn-primary ml-auto">Create Post</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% section scripts %}
+<script>
+    function slugify(text, separator = '-') {
+        return text
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .toLowerCase()
+            .trim()
+            .replace(/[^a-z0-9\s-]/g, '')
+            .replace(/\s+/g, '-')
+            .replace(/-+/g, '-')
+            .replace(new RegExp(`^${separator}+|${separator}+$`, 'g'), '');
+    }
+    
+    (function() {
+        document.addEventListener('DOMContentLoaded', () => {
+            const slugField = document.getElementById("slug");
+            const titleField = document.getElementById("title");
+            
+            titleField.addEventListener('input', () => {
+                const titleContent = titleField.value;
+                slugField.value = slugify(titleContent);
+            });
+        });
+    })()
+</script>
+{% endsection %}

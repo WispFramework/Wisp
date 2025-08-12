@@ -1,0 +1,28 @@
+{% layout '_layout' %}
+
+<div class="container">
+    <div class="w-50 mx-auto">
+        {% if model.error %}
+            <div class="alert alert-danger">{{ model.error | capitalize }}</div>
+        {% endif %}
+        
+        <div class="card">
+            <h5 class="card-header">Log In to Wisp Demo</h5>
+            <div class="card-body">
+                <form action="/auth/login" method="post">
+                    <div class="mb-3">
+                        <label for="username">Username</label>
+                        <input type="text" autofocus id="username" name="username" placeholder="Username" class="form-control">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="password">Password</label>
+                        <input type="password" id="password" name="password" placeholder="Password" class="form-control">
+                    </div>
+                    
+                    <button class="btn btn-primary">Log In</button>
+                </form> 
+            </div>
+        </div>
+    </div>
+</div>

@@ -5,13 +5,18 @@
 //   * MIT License (https://opensource.org/licenses/MIT)
 // at your option.
 
+using System.ComponentModel;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Wisp.Framework.Configuration;
 using Wisp.Framework.Http;
+using Wisp.Framework.Http.Impl;
 using Wisp.Framework.Http.Impl.NetCoreServer;
 using Wisp.Framework.Middleware;
+using Wisp.Framework.Middleware.Auth;
+using Wisp.Framework.Middleware.Sessions;
+using Wisp.Framework.Views;
 
 namespace Wisp.Framework;
 
@@ -19,6 +24,8 @@ public class WispHostBuilder
 {
 
     private readonly IServiceCollection _serviceCollection = new ServiceCollection();
+    
+    public IServiceCollection Services => _serviceCollection;
 
     private readonly ConfigurationBuilder _configBuilder;
 
@@ -75,6 +82,23 @@ public class WispHostBuilder
         return this;
     }
 
+    public WispHostBuilder UseBasicAuth(Action<BasicAuthConfigBuilder> configBuilder)
+    {
+        var builder = new BasicAuthConfigBuilder();
+        configBuilder.Invoke(builder);
+        _serviceCollection.AddSingleton<IAuthConfig, BasicAuthConfig>(_ => builder.Config);
+        _serviceCollection.AddSingleton<IAuthenticator, BasicAuthenticator>();
+        
+        return this;
+    }
+
+    public WispHostBuilder UseFlashMessages()
+    {
+        _serviceCollection.AddSingleton<FlashService>();
+
+        return this;
+    }
+
     /// <summary>
     /// Enable the static file server middleware.
     /// </summary>
@@ -82,6 +106,14 @@ public class WispHostBuilder
     public WispHostBuilder UseStaticFiles()
     {
         _serviceCollection.AddSingleton<IHttpMiddleware, StaticFilesMiddleware>();
+        return this;
+    }
+
+    public WispHostBuilder UseInMemorySession()
+    {
+        _serviceCollection.AddSingleton<ISessionStore, InMemorySessionStore>();
+        _serviceCollection.AddSingleton<IHttpMiddleware, SessionMiddleware>();
+        
         return this;
     }
 
@@ -111,10 +143,18 @@ public class WispHostBuilder
         _serviceCollection.Configure<WispConfiguration>(config.GetRequiredSection("Wisp"));
         _serviceCollection.AddSingleton<Router>();
         _serviceCollection.AddSingleton<IHttpServer, NetCoreServerAdapter>();
+        _serviceCollection.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
+        _serviceCollection.AddSingleton<TemplateRenderer>();
 
         _serviceBuilders.ForEach(s => s.Invoke(_serviceCollection));
         
         _serviceProvider = _serviceCollection.BuildServiceProvider();
+
+        var sessionProviders = _serviceProvider.GetServices<ISessionStore>().ToList();
+        if (sessionProviders.Count() > 1)
+        {
+            throw new InvalidEnumArgumentException("more than one session store is configured, this is not allowed, please only use one");
+        }
 
         return new WispApplicationBuilder(_serviceProvider);
     }

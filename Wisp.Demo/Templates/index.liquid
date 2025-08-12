@@ -1,0 +1,18 @@
+{% layout '_layout' %}
+
+<div class="container">
+    <div class="row">
+        <div class="col">
+            Session: {{ model.session }} ({{ current_user_name }})
+
+            <ul>
+                <li><a href="/private">Private</a></li>
+                <li><a href="/admin">Admin</a></li>
+            </ul>
+
+            {% if model.error %}
+                <p style="color: red;">{{ model.error }}</p>
+            {% endif %}     
+        </div>
+    </div>
+</div>

@@ -52,4 +52,8 @@ at your option.
     <None Include="..\README.md" Pack="True" PackagePath="\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Extensions\" />
+  </ItemGroup>
+
 </Project>

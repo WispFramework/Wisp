@@ -5,6 +5,7 @@
 //   * MIT License (https://opensource.org/licenses/MIT)
 // at your option.
 
+using System.Text.Json.Serialization;
 using System.Web;
 using NetCoreServer;
 
@@ -16,18 +17,33 @@ namespace Wisp.Framework.Http.Impl.NetCoreServer;
 /// <param name="req"></param>
 public class AdapterRequest(HttpRequest req) : IHttpRequest
 {
+    public string Id { get; } = Guid.NewGuid().ToString();
+    
     public string Method => req.Method;
 
     public string Path => req.Url;
 
     public IReadOnlyDictionary<string, string> Headers => req.GetHeaders();
 
-    public IReadOnlyDictionary<string, string> QueryParams =>
-        Path.Contains('?') ? HttpUtility.ParseQueryString(Path.Split('?', 2)[1])
-            .AllKeys.ToDictionary(k => k!, v => v!) : new Dictionary<string, string>();
+    public IReadOnlyDictionary<string, string> QueryParams
+    {
+        get
+        {
+            if (Path.Contains('?'))
+            {
+                var parsed = HttpUtility.ParseQueryString(Path.Split('?', 2)[1]);
+                var dic = parsed.AllKeys.ToDictionary(k => k ?? "unnamed", k => parsed[k] ?? "");
+                return dic;
+            }
+            return new Dictionary<string, string>();
+        }
+    }
 
     public Dictionary<string, string> PathVars { get; set; }
+    
+    public Dictionary<string, string> FormData { get; set; }
 
+    [JsonIgnore]
     public Stream Body => new MemoryStream(req.BodyBytes ?? []);
 
     public IReadOnlyDictionary<string, string> Cookies => req.GetCookies();

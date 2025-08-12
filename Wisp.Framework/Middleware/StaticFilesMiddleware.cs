@@ -45,6 +45,8 @@ public class StaticFilesMiddleware(ILogger<StaticFilesMiddleware> log, IOptions<
         if (string.IsNullOrEmpty(path)) return;
         path = path.Split('?', 2)[0];
         
+        log.LogDebug("Looking for static file {File}", path);
+        
         var root = Path.GetFullPath(configRoot);
         var reqPath = Path.GetFullPath(Path.Combine(root, path));
 
@@ -56,6 +58,8 @@ public class StaticFilesMiddleware(ILogger<StaticFilesMiddleware> log, IOptions<
         }
 
         if (!File.Exists(reqPath)) return;
+        
+        log.LogDebug("static file found");
 
         var ext = Path.GetExtension(reqPath);
         var contentType = MimeTypes.TryGetValue(ext, out var mime) ? mime : "application/octet-stream";
