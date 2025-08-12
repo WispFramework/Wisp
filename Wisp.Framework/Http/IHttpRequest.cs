@@ -5,6 +5,8 @@
 //   * MIT License (https://opensource.org/licenses/MIT)
 // at your option.
 
+using System.Text.Json.Serialization;
+
 namespace Wisp.Framework.Http;
 
 /// <summary>
@@ -12,6 +14,11 @@ namespace Wisp.Framework.Http;
 /// </summary>
 public interface IHttpRequest
 {
+    /// <summary>
+    /// A unique ID for each request
+    /// </summary>
+    string Id { get; }
+    
     /// <summary>
     /// The HTTP Method
     /// </summary>
@@ -41,10 +48,13 @@ public interface IHttpRequest
     /// A list of parsed path variables
     /// </summary>
     Dictionary<string, string> PathVars { get; set; }
+    
+    Dictionary<string, string> FormData { get; set; }
 
     /// <summary>
     /// The request body
     /// </summary>
+    [JsonIgnore]
     Stream Body { get; }
 
     /// <summary>

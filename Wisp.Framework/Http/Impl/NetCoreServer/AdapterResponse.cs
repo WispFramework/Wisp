@@ -5,6 +5,7 @@
 //   * MIT License (https://opensource.org/licenses/MIT)
 // at your option.
 
+using System.Text.Json.Serialization;
 using NetCoreServer;
 
 namespace Wisp.Framework.Http.Impl.NetCoreServer;
@@ -26,5 +27,6 @@ public class AdapterResponse(HttpSession session) : IHttpResponse
 
     public Dictionary<string, string> Cookies { get; set; } = new();
 
+    [JsonIgnore]
     public Stream Body { get; set; } = new MemoryStream();
 }

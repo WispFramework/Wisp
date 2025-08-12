@@ -6,6 +6,7 @@
 // at your option.
 
 using NetCoreServer;
+using Wisp.Framework.Middleware.Sessions;
 
 namespace Wisp.Framework.Http.Impl.NetCoreServer;
 
@@ -26,6 +27,8 @@ public class AdapterContext : IHttpContext
     public IHttpRequest Request { get; set; }
 
     public IHttpResponse Response { get; set; }
+    
+    public ISession? Session { get; set; }
 
     public bool IsHandled { get; set; }
 }

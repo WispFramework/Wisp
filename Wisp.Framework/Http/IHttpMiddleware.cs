@@ -17,21 +17,21 @@ namespace Wisp.Framework.Http;
 public interface IHttpMiddleware
 {
     /// <summary>
-    /// This is called after the request has been processed but before sending the response
+    /// This is called before the request has been processed
     /// </summary>
     /// <param name="context"></param>
     /// <returns></returns>
     Task OnRequestReceived(IHttpContext context);
     
     /// <summary>
-    /// This is called right after the request is received, before routing or processing
+    /// This is called right after the request has been routed but before running the route code
     /// </summary>
     /// <param name="context"></param>
     /// <returns></returns>
     Task OnRequestRouted(IHttpContext context);
 
     /// <summary>
-    /// This is called right after the request has been routed but before running the route code
+    /// This is called after the request is fully processed but not sent yet
     /// </summary>
     /// <param name="context"></param>
     /// <returns></returns>

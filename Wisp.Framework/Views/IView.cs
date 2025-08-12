@@ -5,14 +5,17 @@
 //   * MIT License (https://opensource.org/licenses/MIT)
 // at your option.
 
+using Wisp.Framework.Http;
+
 namespace Wisp.Framework.Views;
 
 public interface IView
 { 
+    string TemplateName { get; }
+    
     bool IsRedirect { get; }
-    Uri? RedirectUri { get; }
+    
+    string? RedirectUri { get; }
     
     object Model { get; }
-
-    Task<(string HtmlOrAddress, bool IsRedirect)> Render();
 }

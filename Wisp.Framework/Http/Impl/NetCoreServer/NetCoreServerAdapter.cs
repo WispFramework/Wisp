@@ -7,6 +7,8 @@
 
 using System.Net;
 using System.Net.Sockets;
+using System.Text.Json;
+using System.Web;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using NetCoreServer;
@@ -23,12 +25,12 @@ namespace Wisp.Framework.Http.Impl.NetCoreServer;
 /// <param name="router"></param>
 /// <param name="log"></param>
 /// <param name="middlewares"></param>
-public class NetCoreServerAdapter(IOptions<WispConfiguration> config, Router router, ILogger<NetCoreServerAdapter> log, IEnumerable<IHttpMiddleware> middlewares)
+public class NetCoreServerAdapter(IOptions<WispConfiguration> config, Router router, ILogger<NetCoreServerAdapter> log, IEnumerable<IHttpMiddleware> middlewares, IHttpContextAccessor contextAccessor)
     : HttpServer(IPAddress.Parse(config.Value.Host), config.Value.Port), IHttpServer
 {
     protected override TcpSession CreateSession()
     {
-        return new AdapterSession(this, router, log, middlewares);
+        return new AdapterSession(this, router, log, middlewares, contextAccessor);
     }
 
     public Task StartAsync()
@@ -48,23 +50,37 @@ public class NetCoreServerAdapter(IOptions<WispConfiguration> config, Router rou
         private readonly Router _router;
 
         private readonly ILogger<NetCoreServerAdapter> _log;
+        private readonly IHttpContextAccessor _contextAccessor;
 
         private readonly List<IHttpMiddleware> _middlewares;
 
-        public AdapterSession(NetCoreServerAdapter server, Router router, ILogger<NetCoreServerAdapter> log, IEnumerable<IHttpMiddleware> middlewares) : base(server)
+        public AdapterSession(NetCoreServerAdapter server, Router router, ILogger<NetCoreServerAdapter> log, IEnumerable<IHttpMiddleware> middlewares, IHttpContextAccessor contextAccessor) : base(server)
         {
             _router = router;
             _log = log;
+            _contextAccessor = contextAccessor;
             _middlewares = middlewares.ToList();
         }
         
         protected override async void OnReceivedRequest(HttpRequest request)
         {
             var context = new AdapterContext(request, this);
-
+            
+            await _contextAccessor.SetContext(context);
+            
             foreach (var m in _middlewares)
             {
                 await m.OnRequestReceived(context);
+            }
+            
+            if (context.Request.Headers.TryGetValue("Content-Type", out var ct))
+            {
+                if (ct == "application/x-www-form-urlencoded")
+                {
+                    var nvc = HttpUtility.ParseQueryString(request.Body);
+                    
+                    context.Request.FormData = nvc.AllKeys.ToDictionary(k => k!, k => nvc[k]!);
+                }
             }
 
             if (context.IsHandled)
@@ -83,24 +99,24 @@ public class NetCoreServerAdapter(IOptions<WispConfiguration> config, Router rou
                 return;
             }
 
-            var response = await _router.Dispatch(context);
+            await _router.Dispatch(context);
 
-            response.Body.Position = 0;
-            var bodyText = await new StreamReader(response.Body).ReadToEndAsync();
+            context.Response.Body.Position = 0;
+            var bodyText = await new StreamReader(context.Response.Body).ReadToEndAsync();
 
-            var res = new NCSResponse(response.StatusCode, "HTTP/1.1");
+            var res = new NCSResponse(context.Response.StatusCode, "HTTP/1.1");
 
-            foreach (var (k, v) in response.Headers)
+            foreach (var (k, v) in context.Response.Headers)
             {
                 res.SetHeader(k, v);
             }
 
-            foreach (var (k, v) in response.Cookies)
+            foreach (var (k, v) in context.Response.Cookies)
             {
-                res.SetCookie(k, v);
+                res.SetCookie(k, v, path: "/", strict: false, secure: false);
             }
 
-            res.SetHeader("Content-Type", response.ContentType);
+            res.SetHeader("Content-Type", context.Response.ContentType);
             res.SetBody(bodyText);
 
             SendResponse(res);

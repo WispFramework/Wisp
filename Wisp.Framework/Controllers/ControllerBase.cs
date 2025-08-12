@@ -18,5 +18,5 @@ public abstract class ControllerBase
         => new TemplateView(templateName, model);
 
     protected internal IView Redirect(string url)
-        => new TemplateView(new Uri(url));
+        => new TemplateView(url);
 }

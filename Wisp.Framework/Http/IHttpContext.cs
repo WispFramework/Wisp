@@ -5,6 +5,8 @@
 //   * MIT License (https://opensource.org/licenses/MIT)
 // at your option.
 
+using Wisp.Framework.Middleware.Sessions;
+
 namespace Wisp.Framework.Http;
 
 /// <summary>
@@ -22,6 +24,11 @@ public interface IHttpContext
     /// The response object
     /// </summary>
     IHttpResponse Response { get; }
+    
+    /// <summary>
+    /// An optional session object
+    /// </summary>
+    ISession? Session { get; set; }
 
     /// <summary>
     /// If a context is handled, it shouldn't be processed any further and the response should be sent

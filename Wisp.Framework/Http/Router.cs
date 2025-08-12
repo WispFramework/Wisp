@@ -6,6 +6,7 @@
 // at your option.
 
 using System.Text;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 
@@ -19,7 +20,7 @@ public class Router(ILogger<Router> log)
     /// <summary>
     /// This is what a request handler method should conform to
     /// </summary>
-    public delegate Task<IHttpResponse> RequestHandler(IHttpContext request);
+    public delegate Task RequestHandler(IHttpContext request);
 
     private readonly Dictionary<string, Dictionary<Regex, RequestHandler>> Routes = new()
     {
@@ -37,17 +38,21 @@ public class Router(ILogger<Router> log)
     /// </summary>
     /// <param name="context"></param>
     /// <returns></returns>
-    public async Task<IHttpResponse> Dispatch(IHttpContext context)
+    public async Task Dispatch(IHttpContext context)
     {
         var request = context.Request;
         var method = request.Method;
         var uri = request.Path;
 
+        if (string.IsNullOrWhiteSpace(method)) throw new Exception("the HTTP context has a fucked up method");
+
+        log.LogDebug("Trying to handle {Method} route for {Uri}", method, uri);
+        
         if (Routes.TryGetValue(method, out var routes))
         {
             foreach (var route in routes)
             {
-                var match = route.Key.Match(uri);
+                var match = route.Key.Match(uri.Split('?')[0]);
                 if (match.Success)
                 {
                     var routeParams = new Dictionary<string, string>();
@@ -60,27 +65,21 @@ public class Router(ILogger<Router> log)
                     context.Request.PathVars = routeParams;
                     
                     log.LogDebug("Found [{Method}] {Route}", method, uri);
-                    return await route.Value.Invoke(context);
+                    await route.Value.Invoke(context);
+                    return;
                 }
             }
             
             log.LogWarning("[{Method}] 404 Not Found - {Route}", method, uri);
-            return new WispHttpResponse
-            {
-                StatusCode = 404,
-                Body = new MemoryStream("Not Found"u8.ToArray())
-            };
+            context.Response.StatusCode = 404;
+            context.Response.Body = new MemoryStream("Not Found"u8.ToArray());
+            return;
         }
 
         log.LogWarning("[{Method}] 500 Unknown Method - {Route}", method, uri);
 
-        var res = new WispHttpResponse
-        {
-            StatusCode = 500,
-            Body = new MemoryStream(Encoding.UTF8.GetBytes($"unknown method {method}"))
-        };
-
-        return res;
+        context.Response.StatusCode = 500;
+        context.Response.Body = new MemoryStream(Encoding.UTF8.GetBytes($"unknown method {method}"));
     }
 
     /// <summary>

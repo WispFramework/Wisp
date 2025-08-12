@@ -11,12 +11,16 @@ using Microsoft.Extensions.Options;
 using Wisp.Framework.Configuration;
 using Wisp.Framework.Controllers;
 using Wisp.Framework.Http;
+using Wisp.Framework.Middleware.Auth;
+using Wisp.Framework.Views;
 
 namespace Wisp.Framework;
 
 public class WispApplicationBuilder
 {
     private readonly IServiceProvider _serviceProvider;
+
+    public IServiceProvider Services => _serviceProvider;
 
     private readonly WispConfiguration _config;
 
@@ -47,7 +51,9 @@ public class WispApplicationBuilder
     public WispApplicationBuilder UseControllers()
     {
         var log = _serviceProvider.GetRequiredService<ILogger<ControllerRegistrar>>();
-        ControllerRegistrar.RegisterControllers(_router, _serviceProvider, log);
+        var renderer = _serviceProvider.GetRequiredService<TemplateRenderer>();
+        var auth = _serviceProvider.GetService<IAuthenticator>();
+        ControllerRegistrar.RegisterControllers(_router, _serviceProvider, log, renderer, authenticator: auth);
         return this;
     }
 
