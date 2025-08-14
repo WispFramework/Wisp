@@ -21,6 +21,29 @@ Follow the [Getting Started](https://wisp.jakubsycha.com/docs/1-getting-started)
 
 All you need to start developing with Wisp is the .NET Core SDK 9+ and a text editor.
 
+## Minimal Example
+
+
+```
+dotnet new console
+dotnet add pacakge Wisp.Framework.Core
+```
+
+`Program.cs`:
+```csharp
+var hostBuilder = new WispHostBuilder();
+var appBuilder = hostBuilder.Build();
+
+appBuilder.ConfigureRoutes(r => {
+  r.Get("/", ctx => {
+    ctx.Response.Body.Write("Hello World"u8);
+  });
+});
+
+var app = appBuilder.Build();
+await app.RunAsync();
+```
+
 ## License
 
 This project is dual-licensed under either:
