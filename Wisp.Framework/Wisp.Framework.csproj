@@ -47,8 +47,7 @@ at your option.
     <PackageReference Include="netcoreserver" Version="8.0.7" />
   </ItemGroup>
 
-  <ItemGroup>
-    <None Include="wisp.application.json" CopyToOutputDirectory="Always" CopyToPublishDirectory="Always" />
+  <ItemGroup>    
     <None Include="..\README.md" Pack="True" PackagePath="\" />
   </ItemGroup>
 
