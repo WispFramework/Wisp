@@ -7,8 +7,10 @@
 
 using Fluid;
 using Fluid.ViewEngine;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
 using Wisp.Framework.Http;
+using Wisp.Framework.Middleware;
 using Wisp.Framework.Middleware.Auth;
 using Wisp.Framework.Middleware.Sessions;
 
@@ -20,6 +22,8 @@ public class TemplateRenderer
     private readonly IAuthenticator? _authenticator;
     private readonly FlashService? _flashService;
 
+    private readonly IMiddlewareDataInjector _middlewareDataInjector;
+
     private readonly FluidViewEngineOptions _viewOptions = new()
     {
         ViewsFileProvider = new PhysicalFileProvider(Path.Combine(Directory.GetCurrentDirectory(), "Templates")),
@@ -28,10 +32,11 @@ public class TemplateRenderer
 
     private readonly FluidViewRenderer _renderer;
 
-    public TemplateRenderer(IAuthenticator? authenticator, FlashService? flashService)
+    public TemplateRenderer(IServiceProvider serviceProvider, IMiddlewareDataInjector dataInjector)
     {
-        _authenticator = authenticator;
-        _flashService = flashService;
+        _authenticator = serviceProvider.GetService<IAuthenticator?>();
+        _flashService = serviceProvider.GetService<FlashService?>();
+        _middlewareDataInjector = dataInjector;
 
         _viewOptions.TemplateOptions.MemberAccessStrategy = UnsafeMemberAccessStrategy.Instance;
         _viewOptions.TemplateOptions.MemberAccessStrategy.MemberNameStrategy = MemberNameStrategies.RenameSnakeCase;
@@ -59,6 +64,8 @@ public class TemplateRenderer
             var flashes = await _flashService.GetAllAndDelete();
             if(flashes is not null) viewModel.FlashMessages = flashes;
         }
+
+        viewModel.Middleware = await _middlewareDataInjector.GetData();
 
         var templateRelativePath = $"{template}.liquid";
         var templateAbsolutePath = Path.GetFullPath(Path.Combine("Templates", templateRelativePath));

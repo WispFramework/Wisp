@@ -12,11 +12,11 @@ namespace Wisp.Framework.Configuration;
 /// </summary>
 public class WispConfiguration
 {
-    public required string Host { get; set; }
+    public required string Host { get; set; } = "0.0.0.0";
 
-    public required int Port { get; set; }
+    public required int Port { get; set; } = 6969;
 
-    public required string LogLevel { get; set; }
+    public required string LogLevel { get; set; } = "Information";
 
-    public required string StaticFileRoot { get; set; }
+    public required string StaticFileRoot { get; set; } = "wwwroot";
 }

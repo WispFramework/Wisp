@@ -42,9 +42,9 @@ public class WispHostBuilder
     /// </summary>
     public WispHostBuilder()
     {
-
         _configBuilder = new ConfigurationBuilder();
-        _configBuilder.AddJsonFile("wisp.application.json", optional: false);
+        _configBuilder.AddJsonFile("wisp.json", optional: true);
+        _configBuilder.AddJsonFile("wisp.development.json", optional: true);
     }
 
     /// <summary>
@@ -82,10 +82,10 @@ public class WispHostBuilder
         return this;
     }
 
-    public WispHostBuilder UseBasicAuth(Action<BasicAuthConfigBuilder> configBuilder)
+    public WispHostBuilder UseBasicAuth(Action<BasicAuthConfigBuilder>? configBuilder = null)
     {
         var builder = new BasicAuthConfigBuilder();
-        configBuilder.Invoke(builder);
+        configBuilder?.Invoke(builder);
         _serviceCollection.AddSingleton<IAuthConfig, BasicAuthConfig>(_ => builder.Config);
         _serviceCollection.AddSingleton<IAuthenticator, BasicAuthenticator>();
         
@@ -109,11 +109,32 @@ public class WispHostBuilder
         return this;
     }
 
+    /// <summary>
+    /// A shortcut for adding middleware
+    /// </summary>
+    /// <param name="middleware"></param>
+    /// <returns></returns>
+    public WispHostBuilder AddMiddleware(Type middleware)
+    {
+        _serviceCollection.Add(new ServiceDescriptor(typeof(IHttpMiddleware), middleware, ServiceLifetime.Singleton));
+        return this;
+    }
+
+    /// <summary>
+    /// A shortcut for adding middleware
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <returns></returns>
+    public WispHostBuilder AddMiddleware<T>()
+    {
+        return AddMiddleware(typeof(T));
+    }
+
     public WispHostBuilder UseInMemorySession()
     {
         _serviceCollection.AddSingleton<ISessionStore, InMemorySessionStore>();
         _serviceCollection.AddSingleton<IHttpMiddleware, SessionMiddleware>();
-        
+
         return this;
     }
 
@@ -130,7 +151,7 @@ public class WispHostBuilder
         {
             b.AddSimpleConsole();
 
-            var logLevelConfig = config.GetRequiredSection("Wisp").GetRequiredSection("LogLevel").Get<string>();
+            var logLevelConfig = config.GetSection("Wisp").GetSection("LogLevel").Get<string?>();
             b.SetMinimumLevel(Enum.TryParse(logLevelConfig, out LogLevel level) ? level : LogLevel.Information);
 
             if (_loggingBuilderConfig != null)
@@ -140,11 +161,12 @@ public class WispHostBuilder
         });
 
         _serviceCollection.AddSingleton<IConfiguration>(config);
-        _serviceCollection.Configure<WispConfiguration>(config.GetRequiredSection("Wisp"));
+        _serviceCollection.Configure<WispConfiguration>(config.GetSection("Wisp"));
         _serviceCollection.AddSingleton<Router>();
         _serviceCollection.AddSingleton<IHttpServer, NetCoreServerAdapter>();
         _serviceCollection.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
         _serviceCollection.AddSingleton<TemplateRenderer>();
+        _serviceCollection.AddSingleton<IMiddlewareDataInjector, MiddlewareDataInjector>();
 
         _serviceBuilders.ForEach(s => s.Invoke(_serviceCollection));
         

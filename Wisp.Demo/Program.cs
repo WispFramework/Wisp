@@ -2,6 +2,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Wisp.Demo.Data;
+using Wisp.Demo.Middleware;
 using Wisp.Demo.Services;
 
 using Wisp.Framework;
@@ -24,10 +25,12 @@ hostBuilder.ConfigureServices(s =>
         o.LogTo(Console.WriteLine, LogLevel.Debug);
         o.UseNpgsql("Server=localhost;Port=5432;Database=wispdemo;User Id=postgres;Password=wispadmin");
     });
-    
+
     s.AddSingleton<AuthService>();
     s.AddSingleton<PostsService>();
 });
+
+hostBuilder.AddMiddleware<DemoDataInjector>();
 
 var appBuilder = hostBuilder.Build();
 

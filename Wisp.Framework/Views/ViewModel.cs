@@ -9,8 +9,10 @@ public class ViewModel
     public string CurrentUserName { get; set; } = string.Empty;
 
     public string CurrentUserRole { get; set; } = string.Empty;
-    
+
     public List<FlashService.FlashMessage> FlashMessages { get; set; } = [];
-    
+
     public required object Model { get; set; }
+
+    public Dictionary<string, object?> Middleware { get; set; } = new();
 }
