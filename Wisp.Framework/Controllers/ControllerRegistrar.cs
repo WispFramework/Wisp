@@ -65,8 +65,6 @@ public class ControllerRegistrar
                     {
                         await WriteBoxResponseAsync(context, result!);
                     }
-
-                    context.Response.StatusCode = 200;
                 };
 
                 router.Add(routeAttr.Method, routeAttr.Route, handler);
@@ -166,6 +164,8 @@ public class ControllerRegistrar
         }
 
         var content = await renderer.Render(view.TemplateName, view.Model, context);
+        
+        context.Response.StatusCode = 200;
         context.Response.ContentType = "text/html";
         context.Response.Body = new MemoryStream(content.AsUtf8Bytes());
     }
