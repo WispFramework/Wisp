@@ -101,8 +101,10 @@ public class NetCoreServerAdapter(IOptions<WispConfiguration> config, Router rou
 
             await _router.Dispatch(context);
 
-            context.Response.Body.Position = 0;
-            var bodyText = await new StreamReader(context.Response.Body).ReadToEndAsync();
+            context.Response.Body.Position = 0;            
+            using var bms = new MemoryStream();
+            await context.Response.Body.CopyToAsync(bms);
+            var bodyBytes = bms.ToArray();
 
             var res = new NCSResponse(context.Response.StatusCode, "HTTP/1.1");
 
@@ -117,7 +119,7 @@ public class NetCoreServerAdapter(IOptions<WispConfiguration> config, Router rou
             }
 
             res.SetHeader("Content-Type", context.Response.ContentType);
-            res.SetBody(bodyText);
+            res.SetBody(bodyBytes);
 
             SendResponse(res);
         }
