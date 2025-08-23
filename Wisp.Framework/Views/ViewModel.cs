@@ -9,6 +9,8 @@ public class ViewModel
     public string CurrentUserName { get; set; } = string.Empty;
 
     public string CurrentUserRole { get; set; } = string.Empty;
+    
+    public string CurrentRoute { get; set; } = string.Empty;
 
     public List<FlashService.FlashMessage> FlashMessages { get; set; } = [];
 

@@ -65,6 +65,8 @@ public class TemplateRenderer
             if(flashes is not null) viewModel.FlashMessages = flashes;
         }
 
+        viewModel.CurrentRoute = context.Request.Path;
+
         viewModel.Middleware = await _middlewareDataInjector.GetData();
 
         var templateRelativePath = $"{template}.liquid";
