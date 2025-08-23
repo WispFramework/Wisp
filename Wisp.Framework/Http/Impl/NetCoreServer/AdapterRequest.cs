@@ -21,7 +21,7 @@ public class AdapterRequest(HttpRequest req) : IHttpRequest
     
     public string Method => req.Method;
 
-    public string Path => req.Url;
+    public string Path { get; } =  req.Url;
 
     public IReadOnlyDictionary<string, string> Headers => req.GetHeaders();
 
