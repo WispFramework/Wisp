@@ -24,6 +24,10 @@
     <None Include="appsettings.Test.json" CopyToOutputDirectory="Always" CopyToPublishDirectory="Always" />
     
     <Using Include="Xunit" />
+    
+    <None Update="Templates\_layout.liquid">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>

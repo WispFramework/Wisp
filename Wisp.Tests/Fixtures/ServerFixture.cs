@@ -1,5 +1,7 @@
 
+using System.Reflection;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Wisp.Framework;
 using Wisp.Framework.Extensions;
 
@@ -15,6 +17,7 @@ public class ServerFixture : IAsyncLifetime
         var hostBuilder = new WispHostBuilder();
 
         hostBuilder.Configure(c => c.AddJsonFile("appsettings.Test.json", false));
+        hostBuilder.ConfigureLogging(l => l.SetMinimumLevel(LogLevel.Debug));
 
         hostBuilder.UseStaticFiles();
         hostBuilder.UseFlashMessages();
@@ -22,7 +25,7 @@ public class ServerFixture : IAsyncLifetime
 
         var appBuilder = hostBuilder.Build();
 
-        //appBuilder.UseControllers();
+        appBuilder.UseControllers(Assembly.GetExecutingAssembly());
         appBuilder.ConfigureRoutes(r =>
         {
             r.Get("/", async ctx =>
