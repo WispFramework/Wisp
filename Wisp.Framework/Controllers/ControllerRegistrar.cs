@@ -11,6 +11,7 @@ using Microsoft.Extensions.Logging;
 using Wisp.Framework.Extensions;
 using Wisp.Framework.Http;
 using Wisp.Framework.Middleware.Auth;
+using Wisp.Framework.Middleware.Sessions;
 using Wisp.Framework.Views;
 using static Wisp.Framework.Utils;
 
@@ -50,7 +51,7 @@ public class ControllerRegistrar
 
                 Router.RequestHandler handler = async context =>
                 {
-                    if (!await AuthenticateAsync(context, authAttr, authenticator, authConfig, routeAttr, log)) return;
+                    if (!await AuthenticateAsync(context, authAttr, authenticator, authConfig, routeAttr, log, serviceProvider)) return;
 
                     var args = BuildControllerArgs(method, serviceProvider);
                     var result = await InvokeControllerAsync(method, controllerInstance, args);
@@ -80,7 +81,8 @@ public class ControllerRegistrar
         IAuthenticator? authenticator,
         IAuthConfig? authConfig,
         RouteAttribute routeAttr,
-        ILogger log)
+        ILogger log,
+        IServiceProvider sp)
     {
 
         if (authAttr is null)
@@ -97,8 +99,11 @@ public class ControllerRegistrar
 
         if (!await authenticator.AuthenticateRoute(authAttr.Role))
         {
+            var flashService = sp.GetService<FlashService>();
+            
             if (authConfig is not null)
             {
+                if(flashService is not null) await flashService.AddFlashMessage("You are not authorized to access this resource", FlashService.FlashMessageType.Error);
                 context.Response.StatusCode = 307;
                 context.Response.Headers.Add("Location", authConfig.FailureRedirectUri);
             }

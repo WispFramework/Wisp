@@ -5,15 +5,17 @@
 //   * MIT License (https://opensource.org/licenses/MIT)
 // at your option.
 
+using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
+using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Web;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using NetCoreServer;
 using Wisp.Framework.Configuration;
-
+using Wisp.Framework.Extensions;
 using NCSResponse = NetCoreServer.HttpResponse;
 
 namespace Wisp.Framework.Http.Impl.NetCoreServer;
@@ -64,64 +66,101 @@ public class NetCoreServerAdapter(IOptions<WispConfiguration> config, Router rou
         
         protected override async void OnReceivedRequest(HttpRequest request)
         {
-            var context = new AdapterContext(request, this);
-            
-            await _contextAccessor.SetContext(context);
-            
-            foreach (var m in _middlewares)
+            try
             {
-                await m.OnRequestReceived(context);
-            }
-            
-            if (context.Request.Headers.TryGetValue("Content-Type", out var ct))
-            {
-                if (ct == "application/x-www-form-urlencoded")
-                {
-                    var nvc = HttpUtility.ParseQueryString(request.Body);
-                    
-                    context.Request.FormData = nvc.AllKeys.ToDictionary(k => k!, k => nvc[k]!);
-                }
-            }
+                var context = new AdapterContext(request, this);
 
-            if (context.IsHandled)
-            {
-                var r = await MakeResponse(context.Response);
-                try
+                await _contextAccessor.SetContext(context);
+
+                foreach (var m in _middlewares)
                 {
-                    SendResponse(r);
+                    await m.OnRequestReceived(context);
                 }
-                catch (ObjectDisposedException ex)
+
+                if (context.Request.Headers.TryGetValue("Content-Type", out var ct))
                 {
-                    _log.LogError(ex, "could not handle static file");
+                    if (ct == "application/x-www-form-urlencoded")
+                    {
+                        var nvc = HttpUtility.ParseQueryString(request.Body);
+
+                        context.Request.FormData = nvc.AllKeys.ToDictionary(k => k!, k => nvc[k]!);
+                    }
+                }
+
+                if (context.IsHandled)
+                {
+                    var r = await MakeResponse(context.Response);
+                    try
+                    {
+                        SendResponse(r);
+                    }
+                    catch (ObjectDisposedException ex)
+                    {
+                        _log.LogError(ex, "could not handle static file");
+                        return;
+                    }
+
                     return;
                 }
+
+                await _router.Dispatch(context);
+
+                context.Response.Body.Position = 0;
+                using var bms = new MemoryStream();
+                await context.Response.Body.CopyToAsync(bms);
+                var bodyBytes = bms.ToArray();
+
+                var res = new NCSResponse(context.Response.StatusCode, "HTTP/1.1");
+
+                foreach (var (k, v) in context.Response.Headers)
+                {
+                    Debug.Assert(k != null, "the key must not be null here");
+                    Debug.Assert(v != null, "the value must not be null here");
+
+                    res.SetHeader(k, v);
+                }
+
+                foreach (var (k, v) in context.Response.Cookies)
+                {
+                    res.SetCookie(k, v, path: "/", strict: false, secure: false);
+                }
+
+                res.SetHeader("Content-Type", context.Response.ContentType);
+                res.SetBody(bodyBytes);
+
+                SendResponse(res);
+            }
+            catch (Exception ex)
+            {
+                _log.LogError(ex, "could not handle request");
                 
-                return;
+                var requestAccept = request.GetHeaders().GetOrDefaultIgnoreCase("Accept");
+                
+                var res = new NCSResponse(500, "HTTP/1.1");
+
+                if (requestAccept?.Contains("text/html", StringComparison.OrdinalIgnoreCase) ?? false)
+                {
+                    var content = ErrorPageRenderer.RenderErrorPage(ex, request.Url);
+                    res.SetHeader("Content-Type", "text/html");
+                    res.SetBody(content);
+                }
+                else
+                {
+                    res.SetHeader("Content-Type", "application/json");
+                
+                    var json = JsonSerializer.Serialize(new
+                    {
+                        StatusCode = 500,
+                        Message = "An unexpected error has occured.",
+                        ExceptionMessage = ex.Message,
+                        ExceptionStackTrace = ex.StackTrace,
+                    }, new JsonSerializerOptions { WriteIndented = true, Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
+
+                    res.SetBody(json);   
+                }
+
+                SendResponse(res);
             }
-
-            await _router.Dispatch(context);
-
-            context.Response.Body.Position = 0;            
-            using var bms = new MemoryStream();
-            await context.Response.Body.CopyToAsync(bms);
-            var bodyBytes = bms.ToArray();
-
-            var res = new NCSResponse(context.Response.StatusCode, "HTTP/1.1");
-
-            foreach (var (k, v) in context.Response.Headers)
-            {
-                res.SetHeader(k, v);
-            }
-
-            foreach (var (k, v) in context.Response.Cookies)
-            {
-                res.SetCookie(k, v, path: "/", strict: false, secure: false);
-            }
-
-            res.SetHeader("Content-Type", context.Response.ContentType);
-            res.SetBody(bodyBytes);
-
-            SendResponse(res);
         }
 
         private async Task<NCSResponse> MakeResponse(IHttpResponse res)
