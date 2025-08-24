@@ -6,6 +6,7 @@
 // at your option.
 
 using System.Reflection;
+using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Wisp.Framework.Extensions;
@@ -37,13 +38,16 @@ public class ControllerRegistrar
         var controllers = assembly?.GetTypes()
             .Where(t => t.GetCustomAttribute<ControllerAttribute>() != null) ?? throw new InvalidOperationException("this should not happen");
 
+        log.LogDebug("Looking for controllers");
+        
         foreach (var controllerType in controllers)
         {
-
+            log.LogDebug("Found controller type {Name}", controllerType.FullName);
             var controllerInstance = ActivatorUtilities.CreateInstance(serviceProvider, controllerType);
 
             foreach (var method in controllerType.GetMethods(BindingFlags.Public | BindingFlags.Instance))
             {
+                log.LogDebug("Found controller method {Name}", method.Name);
                 var routeAttr = method.GetCustomAttribute<RouteAttribute>();
                 if (routeAttr == null) continue;
 
@@ -53,7 +57,7 @@ public class ControllerRegistrar
                 {
                     if (!await AuthenticateAsync(context, authAttr, authenticator, authConfig, routeAttr, log, serviceProvider)) return;
 
-                    var args = BuildControllerArgs(method, serviceProvider);
+                    var args = BuildControllerArgs(method, serviceProvider, context.Request, log);
                     var result = await InvokeControllerAsync(method, controllerInstance, args);
 
                     EnsureResultBox(result, method, controllerInstance);
@@ -119,10 +123,79 @@ public class ControllerRegistrar
         return true;
     }
 
-    private static object?[] BuildControllerArgs(MethodInfo method, IServiceProvider serviceProvider)
-        => method.GetParameters()
-            .Select(p => serviceProvider.GetService(p.ParameterType) ?? GetDefault(p.ParameterType))
-            .ToArray();
+    private static object?[] BuildControllerArgs(MethodInfo method, IServiceProvider serviceProvider, IHttpRequest request, ILogger log)
+    {
+        return method.GetParameters()
+            .Select(p =>
+            {
+                // Inject [FromBody] args
+                if (p.GetCustomAttribute<FromBodyAttribute>() != null)
+                {
+                    var bodyStream = new MemoryStream();
+                    request.Body.Position = 0;
+                    request.Body.CopyTo(bodyStream);
+                    bodyStream.Position = 0;
+                    var bodyReader = new StreamReader(bodyStream);
+                    var body = bodyReader.ReadToEnd();
+                    
+                    log.LogWarning("Body: {Body}", body);
+                    
+                    var parsed = JsonSerializer.Deserialize(body, p.ParameterType);
+                    if (parsed != null) return parsed;
+                }
+
+                // Inject Headers
+                if (p.GetCustomAttribute<HeaderAttribute>() is not null)
+                {
+                    var header = request.Headers.GetOrDefaultIgnoreCaseReadonly(p.Name!);
+                    if(header is not null) return ConvertToType(header, p.ParameterType);
+                    return null;
+                }
+
+                // Inject Cookies
+                if (p.GetCustomAttribute<CookieAttribute>() is not null)
+                {
+                    var cookie = request.Cookies.GetOrDefaultIgnoreCaseReadonly(p.Name!);
+                    if(cookie is not null) return ConvertToType(cookie, p.ParameterType);
+                    return null;
+                }
+                
+                // Inject Query Params
+                if (request.QueryParams.TryGetValue(p.Name!, out var strValue))
+                {
+                    // Not catching here on purpose because this should throw
+                    return ConvertToType(strValue, p.ParameterType);
+                }
+
+                // Inject Path Variables
+                if (request.PathVars.TryGetValue(p.Name!, out var strVal))
+                {
+                    return ConvertToType(strVal, p.ParameterType);
+                }
+
+                // Inject Form Data
+                if (request.FormData.TryGetValue(p.Name!, out var formData))
+                {
+                    return ConvertToType(formData, p.ParameterType);
+                }
+                
+                var service = serviceProvider.GetService(p.ParameterType);
+                if(service != null) return service;
+
+                return GetDefault(p.ParameterType);
+            }).ToArray();
+    }
+
+    private static object? ConvertToType(string value, Type type)
+    {
+        if (type == typeof(string)) return value;
+        
+        var underlyingType = Nullable.GetUnderlyingType(type) ?? type;
+        
+        if(underlyingType.IsEnum) return Enum.Parse(underlyingType, value, ignoreCase: true);
+        
+        return Convert.ChangeType(value, underlyingType);
+    }
 
     private static async Task<object?> InvokeControllerAsync(MethodInfo method, object controllerInstance, object?[] args)
     {
