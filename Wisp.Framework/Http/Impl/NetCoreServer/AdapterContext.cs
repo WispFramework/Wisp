@@ -22,7 +22,11 @@ public class AdapterContext : IHttpContext
         Request = new AdapterRequest(req);
         _response = new AdapterResponse(sess);
         Response = _response;
+
+        IsHttps = false;
     }
+
+    public bool IsHttps { get; private set; }
 
     public IHttpRequest Request { get; set; }
 

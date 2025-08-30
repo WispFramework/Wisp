@@ -174,7 +174,7 @@ public class ControllerRegistrar
                 }
 
                 // Inject Form Data
-                if (request.FormData.TryGetValue(p.Name!, out var formData))
+                if (request.FormData?.TryGetValue(p.Name!, out var formData) ?? false)
                 {
                     return ConvertToType(formData, p.ParameterType);
                 }

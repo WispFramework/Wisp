@@ -4,7 +4,7 @@ public class UserPrincipal
 {
     public string Username { get; set; }
     
-    public string Role { get; set; }
+    public List<string> Roles { get; set; }
     
     public string Id { get; set; }
 }

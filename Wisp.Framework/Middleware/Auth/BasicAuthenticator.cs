@@ -36,8 +36,8 @@ public class BasicAuthenticator(IHttpContextAccessor accessor, ILogger<BasicAuth
             log.LogDebug("authentication failed: username is invalid");
             return false;
         }
-
-        if (role != null && !user.Role.Equals(role, StringComparison.InvariantCultureIgnoreCase))
+        
+        if (role != null && user.Roles.Any(r => r.Equals(role, StringComparison.InvariantCultureIgnoreCase)))
         {
             log.LogDebug("authentication failed: role mismatch");
             return false;
@@ -60,7 +60,7 @@ public class BasicAuthenticator(IHttpContextAccessor accessor, ILogger<BasicAuth
         var user  = _users.FirstOrDefault(u => u.Username.Equals(username, StringComparison.InvariantCultureIgnoreCase));
         if(user == null) return null;
         
-        return new UserPrincipal { Username = user.Username, Role = user.Role };
+        return new UserPrincipal { Username = user.Username, Roles = user.Roles };
     }
 
     public async Task<bool> Authenticate(UserPrincipal principal)
@@ -71,6 +71,7 @@ public class BasicAuthenticator(IHttpContextAccessor accessor, ILogger<BasicAuth
         var session = context.Session;
         if(session is null) return false;
         
+        session.Remove("auth.username");
         session.Set("auth.username", principal.Username);
         _users.Add(principal);
         
