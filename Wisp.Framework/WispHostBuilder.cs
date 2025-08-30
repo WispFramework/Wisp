@@ -27,7 +27,9 @@ public class WispHostBuilder
     
     public IServiceCollection Services => _serviceCollection;
 
-    private readonly ConfigurationBuilder _configBuilder;
+    public IConfiguration Configuration => ConfigurationBuilder.Build();
+
+    public readonly ConfigurationBuilder ConfigurationBuilder;
 
     private IServiceProvider? _serviceProvider;
 
@@ -42,22 +44,22 @@ public class WispHostBuilder
     /// </summary>
     public WispHostBuilder()
     {
-        _configBuilder = new ConfigurationBuilder();
-        _configBuilder.AddJsonFile("wisp.json", optional: true);
-        _configBuilder.AddJsonFile("wisp.development.json", optional: true);
+        ConfigurationBuilder = new ConfigurationBuilder();
+        ConfigurationBuilder.AddJsonFile("wisp.json", optional: true);
+        ConfigurationBuilder.AddJsonFile("wisp.development.json", optional: true);
     }
 
-    /// <summary>
-    /// Set up configuration.
-    /// </summary>
-    /// <param name="builder"></param>
-    /// <returns></returns>
-    public WispHostBuilder Configure(Action<IConfigurationBuilder> builder)
-    {
-        _configBuilders.Add(builder);
-
-        return this;
-    }
+    // /// <summary>
+    // /// Set up configuration.
+    // /// </summary>
+    // /// <param name="builder"></param>
+    // /// <returns></returns>
+    // public WispHostBuilder Configure(Action<IConfigurationBuilder> builder)
+    // {
+    //     _configBuilders.Add(builder);
+    //
+    //     return this;
+    // }
 
     /// <summary>
     /// Configure dependency injection
@@ -130,10 +132,15 @@ public class WispHostBuilder
         return AddMiddleware(typeof(T));
     }
 
+    private bool _inMemorySessionEnabled = false;
+    
     public WispHostBuilder UseInMemorySession()
     {
+        if (_inMemorySessionEnabled) return this;
+        
         _serviceCollection.AddSingleton<ISessionStore, InMemorySessionStore>();
         _serviceCollection.AddSingleton<IHttpMiddleware, SessionMiddleware>();
+        _inMemorySessionEnabled = true;
 
         return this;
     }
@@ -144,8 +151,8 @@ public class WispHostBuilder
     /// <returns></returns>
     public WispApplicationBuilder Build()
     {
-        _configBuilders.ForEach(c => c.Invoke(_configBuilder));
-        var config = _configBuilder.Build();
+        // _configBuilders.ForEach(c => c.Invoke(ConfigurationBuilder));
+        var config = ConfigurationBuilder.Build();
 
         _serviceCollection.AddLogging(b =>
         {

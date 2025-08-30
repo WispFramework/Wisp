@@ -1,0 +1,14 @@
+{
+  "Wisp": {
+    "Extensions": {
+      "Identity" : {
+        "OpenId": {
+          "DiscoveryUrl": "http://localhost:8080/realms/master/.well-known/openid-configuration",
+          "ClientId": "wisp_demo",
+          "ClientSecret": "qF6LD3s2qORlIqCEB9LlP1mwuNEReqaa",
+          "Scopes": "profile openid email"
+        }
+      }
+    }
+  }
+}

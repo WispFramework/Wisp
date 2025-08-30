@@ -8,7 +8,7 @@ public class ViewModel
 
     public string CurrentUserName { get; set; } = string.Empty;
 
-    public string CurrentUserRole { get; set; } = string.Empty;
+    public List<string> CurrentUserRoles { get; set; } = new();
     
     public string CurrentRoute { get; set; } = string.Empty;
 

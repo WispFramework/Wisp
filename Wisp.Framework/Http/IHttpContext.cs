@@ -19,6 +19,11 @@ public interface IHttpContext
     /// The request object
     /// </summary>
     IHttpRequest Request { get; }
+    
+    /// <summary>
+    /// This this request HTTPS (or HTTP)?
+    /// </summary>
+    bool IsHttps { get; }
 
     /// <summary>
     /// The response object

@@ -1,0 +1,35 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageLicenseExpression>MIT OR Apache-2.0</PackageLicenseExpression>
+
+
+    <PackageId>Wisp.Extensions.Identity.OpenId</PackageId>    
+    <Authors>Jakub Sycha (utf-8x)</Authors>
+    <Company>Wisp</Company>
+    <Description>An OpenID auth provider for the Wisp Framework</Description>
+    <PackageProjectUrl>https://github.com/utf-8x/wisp</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/utf-8x/wisp.git</RepositoryUrl>
+    <RespositoryType>git</RespositoryType>
+    <PackageTags>web;framework;lightweight</PackageTags>    
+
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Wisp.Framework/Wisp.Framework.csproj" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.14.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\"/>
+  </ItemGroup>
+</Project>

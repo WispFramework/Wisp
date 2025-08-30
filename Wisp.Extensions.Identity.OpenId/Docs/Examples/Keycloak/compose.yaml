@@ -1,0 +1,15 @@
+services:
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.3.3
+    container_name: keycloak
+    ports:
+      - "8080:8080"
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: wisp
+    volumes:
+      - ./keycloak/config:/opt/keycloak/conf
+      - ./keycloak/themes:/opt/keycloak/themes
+      - ./keycloak/providers:/opt/keycloak/providers
+    command: start-dev
+    restart: unless-stopped

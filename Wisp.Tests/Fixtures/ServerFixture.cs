@@ -16,7 +16,7 @@ public class ServerFixture : IAsyncLifetime
     {
         var hostBuilder = new WispHostBuilder();
 
-        hostBuilder.Configure(c => c.AddJsonFile("appsettings.Test.json", false));
+        hostBuilder.ConfigurationBuilder.AddJsonFile("appsettings.Test.json", false);
         hostBuilder.ConfigureLogging(l => l.SetMinimumLevel(LogLevel.Debug));
 
         hostBuilder.UseStaticFiles();

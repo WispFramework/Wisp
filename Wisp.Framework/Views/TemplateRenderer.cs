@@ -55,7 +55,7 @@ public class TemplateRenderer
             {
                 viewModel.UserLoggedIn = true;
                 viewModel.CurrentUserName = user.Username;
-                viewModel.CurrentUserRole = user.Role;
+                viewModel.CurrentUserRoles = user.Roles;
             }
         }
 
