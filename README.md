@@ -6,7 +6,7 @@
 [![Gitea Issues](https://img.shields.io/gitea/issues/open/WispFramework/Wisp?gitea_url=https%3A%2F%2Fcodeberg.org)](https://codeberg.org/WispFramework/Wisp/issues)
 [![Gitea Pull Requests](https://img.shields.io/gitea/pull-requests/open/WispFramework/Wisp?gitea_url=https%3A%2F%2Fcodeberg.org)](https://codeberg.org/WispFramework/Wisp/pulls)
 
-> **GitHub Users:** This repository is a mirror of the upstream on [CodeBerg](https://codeberg.org/WispFramework/Wisp). At this time,
+> **For GitHub Users:** This repository is a mirror of the upstream on [CodeBerg](https://codeberg.org/WispFramework/Wisp). At this time,
 > issues and pull requests will only be accepted in the upstream repo.
 
 Wisp is an open-source, cross-platform, embeddable web framework for building small, lightweight
@@ -16,7 +16,8 @@ applications so it's fully self-contained and has no special environment require
 
 [Learn more about Wisp](https://wisp.jakubsycha.com/)
 
-> **Warning!** Wisp is in very early stages of development and production use is not recommended.
+> **Warning!** Wisp is in very early stages of development and production use is not recommended. Every release, even minor, might
+> introduce significant breaking changed.
 
 ## Get Started
 
