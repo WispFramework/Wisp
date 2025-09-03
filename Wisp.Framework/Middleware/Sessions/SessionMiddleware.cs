@@ -24,4 +24,6 @@ public class SessionMiddleware(ISessionStore store, ILogger<SessionMiddleware> l
         context.Session = newSession;
         context.Response.Cookies["WISP_SESSION"] = newSession.Id;
     }
+
+    public override MiddlewarePriority Priority => MiddlewarePriority.Highest;
 }

@@ -47,9 +47,10 @@ public class ControllerRegistrar
 
             foreach (var method in controllerType.GetMethods(BindingFlags.Public | BindingFlags.Instance))
             {
-                log.LogDebug("Found controller method {Name}", method.Name);
                 var routeAttr = method.GetCustomAttribute<RouteAttribute>();
                 if (routeAttr == null) continue;
+
+                log.LogDebug("Found controller method {Name}", method.Name);
 
                 var authAttr = method.GetCustomAttribute<AuthorizeAttribute>();
 

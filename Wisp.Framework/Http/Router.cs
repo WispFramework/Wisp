@@ -15,12 +15,14 @@ namespace Wisp.Framework.Http;
 /// <summary>
 /// This is the Wisp HTTP Router
 /// </summary>
-public class Router(ILogger<Router> log)
+public class Router(ILogger<Router> log, IEnumerable<IHttpMiddleware> middlewares)
 {
     /// <summary>
     /// This is what a request handler method should conform to
     /// </summary>
     public delegate Task RequestHandler(IHttpContext request);
+
+    private List<IHttpMiddleware> _middlewares = middlewares.ToList();
 
     private readonly Dictionary<string, Dictionary<Regex, RequestHandler>> Routes = new()
     {
@@ -66,6 +68,12 @@ public class Router(ILogger<Router> log)
                     context.Request.PathVars = routeParams;
                     
                     log.LogDebug("Found [{Method}] {Route}", method, uri);
+
+                    foreach (var m in _middlewares.OrderBy(m => (int)m.Priority))
+                    {
+                        await m.OnRequestRouted(context);
+                    }
+
                     await route.Value.Invoke(context);
                     return;
                 }

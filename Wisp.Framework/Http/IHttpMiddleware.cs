@@ -22,7 +22,7 @@ public interface IHttpMiddleware
     /// <param name="context"></param>
     /// <returns></returns>
     Task OnRequestReceived(IHttpContext context);
-    
+
     /// <summary>
     /// This is called right after the request has been routed but before running the route code
     /// </summary>
@@ -36,4 +36,9 @@ public interface IHttpMiddleware
     /// <param name="context"></param>
     /// <returns></returns>
     Task OnRequestHandled(IHttpContext context);
+    
+    /// <summary>
+    /// The priority, <see cref="MiddlewarePriority"/>
+    /// </summary>
+    MiddlewarePriority Priority { get; }
 }

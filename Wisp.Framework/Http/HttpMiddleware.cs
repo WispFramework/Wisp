@@ -13,14 +13,16 @@ public abstract class HttpMiddleware : IHttpMiddleware
     {
         return Task.CompletedTask;
     }
-    
+
     public virtual Task OnRequestReceived(IHttpContext context)
     {
         return Task.CompletedTask;
     }
-    
+
     public virtual Task OnRequestRouted(IHttpContext context)
     {
         return Task.CompletedTask;
     }
+
+    public virtual MiddlewarePriority Priority => MiddlewarePriority.Medium;
 }

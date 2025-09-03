@@ -61,18 +61,24 @@ public class NetCoreServerAdapter(IOptions<WispConfiguration> config, Router rou
             _router = router;
             _log = log;
             _contextAccessor = contextAccessor;
-            _middlewares = middlewares.ToList();
+            _middlewares = middlewares.ToList();            
         }
         
         protected override async void OnReceivedRequest(HttpRequest request)
-        {
+        {      
             try
             {
                 var context = new AdapterContext(request, this);
 
+                var clientEndpoint = Socket.RemoteEndPoint as IPEndPoint;
+                if (clientEndpoint is not null)
+                {
+                    context.Request.ClientEndpoint = clientEndpoint;
+                }
+
                 await _contextAccessor.SetContext(context);
 
-                foreach (var m in _middlewares)
+                foreach (var m in _middlewares.OrderBy(m => (int)m.Priority))
                 {
                     await m.OnRequestReceived(context);
                 }
@@ -105,6 +111,11 @@ public class NetCoreServerAdapter(IOptions<WispConfiguration> config, Router rou
 
                 await _router.Dispatch(context);
 
+                foreach (var m in _middlewares.OrderBy(m => (int)m.Priority))
+                {
+                    await m.OnRequestHandled(context);
+                }
+
                 context.Response.Body.Position = 0;
                 using var bms = new MemoryStream();
                 await context.Response.Body.CopyToAsync(bms);
@@ -133,9 +144,9 @@ public class NetCoreServerAdapter(IOptions<WispConfiguration> config, Router rou
             catch (Exception ex)
             {
                 _log.LogError(ex, "could not handle request");
-                
+
                 var requestAccept = request.GetHeaders().GetOrDefaultIgnoreCase("Accept");
-                
+
                 var res = new NCSResponse(500, "HTTP/1.1");
 
                 if (requestAccept?.Contains("text/html", StringComparison.OrdinalIgnoreCase) ?? false)
@@ -147,7 +158,7 @@ public class NetCoreServerAdapter(IOptions<WispConfiguration> config, Router rou
                 else
                 {
                     res.SetHeader("Content-Type", "application/json");
-                
+
                     var json = JsonSerializer.Serialize(new
                     {
                         StatusCode = 500,
@@ -156,7 +167,7 @@ public class NetCoreServerAdapter(IOptions<WispConfiguration> config, Router rou
                         ExceptionStackTrace = ex.StackTrace,
                     }, new JsonSerializerOptions { WriteIndented = true, Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
 
-                    res.SetBody(json);   
+                    res.SetBody(json);
                 }
 
                 SendResponse(res);

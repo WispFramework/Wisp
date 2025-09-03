@@ -5,6 +5,7 @@
 //   * MIT License (https://opensource.org/licenses/MIT)
 // at your option.
 
+using System.Net;
 using System.Text.Json.Serialization;
 using System.Web;
 using NetCoreServer;
@@ -22,6 +23,8 @@ public class AdapterRequest(HttpRequest req) : IHttpRequest
     public string Method => req.Method;
 
     public string Path { get; } =  req.Url;
+
+    public IPEndPoint ClientEndpoint { get; set; }
 
     public IReadOnlyDictionary<string, string> Headers => req.GetHeaders();
 
