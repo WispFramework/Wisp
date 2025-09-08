@@ -1,5 +1,6 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 using Wisp.Extensions.Identity.OpenId.Config;
 using Wisp.Extensions.Identity.OpenId.Data.Api;
 using Wisp.Extensions.Identity.OpenId.Data.Client;
@@ -9,7 +10,7 @@ using Wisp.Framework.Middleware.Auth;
 
 namespace Wisp.Extensions.Identity.OpenId.Services;
 
-public class OpenIdService(OpenIdConnectClient client, IAuthenticator authenticator, OpenIdExtensionConfig extensionConfig)
+public class OpenIdService(OpenIdConnectClient client, IAuthenticator authenticator, OpenIdExtensionConfig extensionConfig, ILogger<OpenIdService> log)
 {
     public const string OpenIdStateSessionKey = "oidc-state";
     public const string OpenIdTokenSessionKey = "oidc-token";
@@ -142,9 +143,17 @@ public class OpenIdService(OpenIdConnectClient client, IAuthenticator authentica
     {
         localState = context.Session?.Get<OpenIdAuthCall>(OpenIdStateSessionKey);
         
-        if (query.State is null || query.SessionState is null || query.Iss is null || query.Code is null || localState is null)
+        if (query.State is null || query.SessionState is null || query.Code is null || localState is null)
         {
-            SetResponseError(context, new { Error = "invalid request" });
+            SetResponseError(context, new
+            {
+                Error = "invalid request",
+                QueryStateIsNull = (query.State is null),
+                QuerySessionStateIsNull = (query.SessionState is null),
+                QueryIssIsNull = (query.Iss is null),
+                QueryCodeIsNull = (query.Code is null),
+                LocalStateIsNull = (localState is null)
+            });
             return false;
         }
 
@@ -157,15 +166,14 @@ public class OpenIdService(OpenIdConnectClient client, IAuthenticator authentica
 
     private UserPrincipal BuildPrincipal(OpenIdUserInfo userInfo, OpenIdTokenResponse tokenResponse)
     {
-        var jwt = new JwtSecurityTokenHandler().ReadJwtToken(tokenResponse.AccessToken);
+        var jwt = new JwtSecurityTokenHandler().ReadJwtToken(tokenResponse.IdToken);
         var roles = jwt.Claims
             .Where(c => c.Type == extensionConfig.RolesClaimName)
             .Select(c => c.Value)
             .ToList();
         
         var username = extensionConfig.UsernameProp.Compile()(userInfo);
-        if (username is null)
-            throw new InvalidDataException("invalid user information received from OIDC provider");
+        if (username is null) throw new InvalidDataException("the OIDC provider did not fill the configured username field");
 
         return new UserPrincipal
         {

@@ -102,7 +102,7 @@ public class ControllerRegistrar
             return true;
         }
 
-        if (!await authenticator.AuthenticateRoute(authAttr.Role))
+        if (!await authenticator.AuthenticateRoute(authAttr.Roles))
         {
             var flashService = sp.GetService<FlashService>();
             

@@ -15,6 +15,7 @@ using Wisp.Framework.Http.Impl;
 using Wisp.Framework.Http.Impl.NetCoreServer;
 using Wisp.Framework.Middleware;
 using Wisp.Framework.Middleware.Auth;
+using Wisp.Framework.Middleware.ErrorPages;
 using Wisp.Framework.Middleware.Sessions;
 using Wisp.Framework.Views;
 
@@ -146,6 +147,23 @@ public class WispHostBuilder
     }
 
     /// <summary>
+    /// Enable the friendly error pages middleware. This will ensure that template-based HTML
+    /// error pages are shown instead of JSON or plain-text ones.
+    /// </summary>
+    /// <param name="config"></param>
+    /// <returns></returns>
+    public WispHostBuilder UseFriendlyErrorPages(Action<ErrorPagesConfigBuilder>? config)
+    {
+        var cfg = new ErrorPagesConfigBuilder();
+        config?.Invoke(cfg);
+
+        Services.AddSingleton(cfg.Build());
+        AddMiddleware<ErrorPageMiddleware>();
+
+        return this;
+    }
+
+    /// <summary>
     /// Finalizes configuration and returns an application builder
     /// </summary>
     /// <returns></returns>
@@ -176,7 +194,7 @@ public class WispHostBuilder
         _serviceCollection.AddSingleton<IMiddlewareDataInjector, MiddlewareDataInjector>();
 
         _serviceBuilders.ForEach(s => s.Invoke(_serviceCollection));
-        
+
         _serviceProvider = _serviceCollection.BuildServiceProvider();
 
         var sessionProviders = _serviceProvider.GetServices<ISessionStore>().ToList();

@@ -4,7 +4,7 @@ namespace Wisp.Framework.Middleware.Auth;
 
 public interface IAuthenticator
 {
-    Task<bool> AuthenticateRoute(string? role = null);
+    Task<bool> AuthenticateRoute(List<string> roles);
 
     Task<UserPrincipal?> GetUser();
 

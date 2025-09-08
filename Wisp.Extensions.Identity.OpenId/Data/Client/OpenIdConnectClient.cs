@@ -68,6 +68,8 @@ public class OpenIdConnectClient
         bool https,
         CancellationToken cancellationToken = default)
     {
+
+        if (host == "127.0.0.1") host = "localhost";
         
         var discoResult = await GetDiscoveryAsync(cancellationToken);
         if (!discoResult.Ok) return Result<OpenIdAuthCall, OpenIdError>.Failure(discoResult.Error);

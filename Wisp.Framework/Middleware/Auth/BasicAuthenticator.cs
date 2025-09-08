@@ -1,3 +1,4 @@
+using System.Linq;
 using Microsoft.Extensions.Logging;
 using Wisp.Framework.Http;
 
@@ -7,7 +8,7 @@ public class BasicAuthenticator(IHttpContextAccessor accessor, ILogger<BasicAuth
 {
     private readonly List<UserPrincipal> _users = new();
     
-    public async Task<bool> AuthenticateRoute(string? role = null)
+    public async Task<bool> AuthenticateRoute(List<string> roles)
     {
         var context = await accessor.HttpContext;
         if (context is null)
@@ -36,8 +37,10 @@ public class BasicAuthenticator(IHttpContextAccessor accessor, ILogger<BasicAuth
             log.LogDebug("authentication failed: username is invalid");
             return false;
         }
-        
-        if (role != null && user.Roles.Any(r => r.Equals(role, StringComparison.InvariantCultureIgnoreCase)))
+
+        var rolesHash = new HashSet<string>(roles, StringComparer.OrdinalIgnoreCase);
+
+        if (roles.Count > 0 && user.Roles.Any(r => rolesHash.Contains(r)))
         {
             log.LogDebug("authentication failed: role mismatch");
             return false;

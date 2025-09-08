@@ -7,7 +7,7 @@ public class OpenIdAuthenticator(IHttpContextAccessor contextAccessor) : IAuthen
 {
     public const string OpenIdAuthenticatorPrincipalSessionKey = "oidc-principal";
     
-    public async Task<bool> AuthenticateRoute(string? role = null)
+    public async Task<bool> AuthenticateRoute(List<string> roles)
     {
         var context = await contextAccessor.HttpContext;
         if(context is null || context.Session is null) throw new Exception("session store not present");
@@ -15,8 +15,11 @@ public class OpenIdAuthenticator(IHttpContextAccessor contextAccessor) : IAuthen
         var principal = context.Session.Get<UserPrincipal>(OpenIdAuthenticatorPrincipalSessionKey);
         
         if (principal is null) return false;
-        if (role is null) return true;
-        if (principal.Roles.Any(r => r.Equals(role, StringComparison.OrdinalIgnoreCase))) return true;
+        if (roles.Count < 1) return true;
+
+        var rolesHash = new HashSet<string>(roles, StringComparer.OrdinalIgnoreCase);
+
+        if (principal.Roles.Any(r => rolesHash.Contains(r))) return true;
 
         return false;
     }

@@ -35,7 +35,7 @@ public class NetCoreServerAdapter(IOptions<WispConfiguration> config, Router rou
         return new AdapterSession(this, router, log, middlewares, contextAccessor);
     }
 
-    public Task StartAsync()
+    public Task StartAsync(CancellationToken? cancel = default)
     {
         Start();
         return Task.CompletedTask;
@@ -81,6 +81,7 @@ public class NetCoreServerAdapter(IOptions<WispConfiguration> config, Router rou
                 foreach (var m in _middlewares.OrderBy(m => m.Priority.Value))
                 {
                     await m.OnRequestReceived(context);
+                    if (context.IsHandled) break;
                 }
 
                 if (context.Request.Headers.TryGetValue("Content-Type", out var ct))
@@ -114,6 +115,23 @@ public class NetCoreServerAdapter(IOptions<WispConfiguration> config, Router rou
                 foreach (var m in _middlewares.OrderBy(m => m.Priority.Value))
                 {
                     await m.OnRequestHandled(context);
+                    if (context.IsHandled) break;
+                }
+
+                if (context.IsHandled)
+                {
+                    var r = await MakeResponse(context.Response);
+                    try
+                    {
+                        SendResponse(r);
+                    }
+                    catch (ObjectDisposedException ex)
+                    {
+                        _log.LogError(ex, "could not handle static file");
+                        return;
+                    }
+
+                    return;
                 }
 
                 context.Response.Body.Position = 0;

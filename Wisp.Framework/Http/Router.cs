@@ -9,6 +9,8 @@ using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
+using Wisp.Framework.Middleware;
+using Wisp.Framework.Middleware.ErrorPages;
 
 namespace Wisp.Framework.Http;
 
@@ -50,7 +52,7 @@ public class Router(ILogger<Router> log, IEnumerable<IHttpMiddleware> middleware
         if (string.IsNullOrWhiteSpace(method)) throw new Exception("the HTTP context does not contain a method");
 
         log.LogDebug("Trying to handle {Method} route for {Uri}", method, uri);
-        
+
         if (Routes.TryGetValue(method, out var routes))
         {
             foreach (var route in routes)
@@ -61,12 +63,12 @@ public class Router(ILogger<Router> log, IEnumerable<IHttpMiddleware> middleware
                     var routeParams = new Dictionary<string, string>();
                     foreach (var groupName in route.Key.GetGroupNames())
                     {
-                        if(groupName != "0" && match.Groups[groupName].Success)
+                        if (groupName != "0" && match.Groups[groupName].Success)
                             routeParams[groupName] = match.Groups[groupName].Value;
                     }
-                    
+
                     context.Request.PathVars = routeParams;
-                    
+
                     log.LogDebug("Found [{Method}] {Route}", method, uri);
 
                     foreach (var m in _middlewares.OrderBy(m => m.Priority.Value))
@@ -78,10 +80,11 @@ public class Router(ILogger<Router> log, IEnumerable<IHttpMiddleware> middleware
                     return;
                 }
             }
-            
+
             log.LogWarning("[{Method}] 404 Not Found - {Route}", method, uri);
             context.Response.StatusCode = 404;
             context.Response.Body = new MemoryStream("Not Found"u8.ToArray());
+            context.ExtraData.Add(ErrorPageMiddleware.ExtraDataKey, new ErrorPageData { StatusCode = 404, FriendlyMessage = "Not Found", DeveloperMessage = $"no route found for [{method}] {uri}" });
             return;
         }
 
@@ -89,6 +92,7 @@ public class Router(ILogger<Router> log, IEnumerable<IHttpMiddleware> middleware
 
         context.Response.StatusCode = 500;
         context.Response.Body = new MemoryStream(Encoding.UTF8.GetBytes($"unknown method {method}"));
+        context.ExtraData.Add(ErrorPageMiddleware.ExtraDataKey, new ErrorPageData { StatusCode = 404, FriendlyMessage = "Not Found", DeveloperMessage = $"unknown method [{method}] for {uri}" });
     }
 
     /// <summary>

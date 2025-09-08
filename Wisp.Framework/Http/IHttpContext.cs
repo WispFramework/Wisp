@@ -19,7 +19,7 @@ public interface IHttpContext
     /// The request object
     /// </summary>
     IHttpRequest Request { get; }
-    
+
     /// <summary>
     /// This this request HTTPS (or HTTP)?
     /// </summary>
@@ -29,7 +29,7 @@ public interface IHttpContext
     /// The response object
     /// </summary>
     IHttpResponse Response { get; }
-    
+
     /// <summary>
     /// An optional session object
     /// </summary>
@@ -39,4 +39,9 @@ public interface IHttpContext
     /// If a context is handled, it shouldn't be processed any further and the response should be sent
     /// </summary>
     bool IsHandled { get; set; }
+    
+    /// <summary>
+    /// Additional data that can be used by, for example, middleware
+    /// </summary>
+    Dictionary<string, object?> ExtraData { get; set; }
 }
