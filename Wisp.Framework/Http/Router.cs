@@ -69,7 +69,7 @@ public class Router(ILogger<Router> log, IEnumerable<IHttpMiddleware> middleware
                     
                     log.LogDebug("Found [{Method}] {Route}", method, uri);
 
-                    foreach (var m in _middlewares.OrderBy(m => (int)m.Priority))
+                    foreach (var m in _middlewares.OrderBy(m => m.Priority.Value))
                     {
                         await m.OnRequestRouted(context);
                     }

@@ -78,7 +78,7 @@ public class NetCoreServerAdapter(IOptions<WispConfiguration> config, Router rou
 
                 await _contextAccessor.SetContext(context);
 
-                foreach (var m in _middlewares.OrderBy(m => (int)m.Priority))
+                foreach (var m in _middlewares.OrderBy(m => m.Priority.Value))
                 {
                     await m.OnRequestReceived(context);
                 }
@@ -111,7 +111,7 @@ public class NetCoreServerAdapter(IOptions<WispConfiguration> config, Router rou
 
                 await _router.Dispatch(context);
 
-                foreach (var m in _middlewares.OrderBy(m => (int)m.Priority))
+                foreach (var m in _middlewares.OrderBy(m => m.Priority.Value))
                 {
                     await m.OnRequestHandled(context);
                 }

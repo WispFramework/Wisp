@@ -26,3 +26,23 @@ public record Result<T, TE>
     
     public static Result<T, TE> Failure(TE error) => new(error);
 }
+
+public record Result<TE>
+{
+    private TE? _error;
+
+    public Result() { }
+
+    public Result(TE error)
+    {
+        _error = error;
+    }
+
+    public bool Ok => _error == null;
+    
+    public TE Error => _error ?? throw new InvalidOperationException("tried to access the error of a success result");
+    
+    public static Result<TE> Success() => new();
+    
+    public static Result<TE> Failure(TE error) => new(error);
+}
