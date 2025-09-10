@@ -46,6 +46,8 @@ public class AdapterRequest(HttpRequest req) : IHttpRequest
     
     public Dictionary<string, string> FormData { get; set; }
 
+    public List<File> Files { get; set; } = new();
+
     [JsonIgnore]
     public Stream Body => new MemoryStream(req.BodyBytes ?? []);
 

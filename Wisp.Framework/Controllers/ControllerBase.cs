@@ -19,4 +19,6 @@ public abstract class ControllerBase
 
     protected internal ViewResult Redirect(string url)
         => new ViewResult(new TemplateView(url));
+
+    protected internal IResultBox<T> Box<T>(T item) => new ResultBox<T>(item);
 }

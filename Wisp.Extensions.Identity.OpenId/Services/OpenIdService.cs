@@ -14,6 +14,10 @@ public class OpenIdService(OpenIdConnectClient client, IAuthenticator authentica
 {
     public const string OpenIdStateSessionKey = "oidc-state";
     public const string OpenIdTokenSessionKey = "oidc-token";
+
+    public delegate void OnUserAuthenticated(UserPrincipal principal);
+    
+    public event OnUserAuthenticated? UserAuthenticated;
     
     /// <summary>
     /// Redirect the user to the OIDC authorization URL
@@ -83,6 +87,7 @@ public class OpenIdService(OpenIdConnectClient client, IAuthenticator authentica
             return;
         }
         
+        UserAuthenticated?.Invoke(principal);
         RedirectSuccess(context);
     }
 
@@ -178,7 +183,11 @@ public class OpenIdService(OpenIdConnectClient client, IAuthenticator authentica
         return new UserPrincipal
         {
             Username = username,
-            Roles = roles
+            Roles = roles,
+            Id = jwt.Subject,
+            Email = jwt.Claims.FirstOrDefault(c => c.Type == "email")?.Value ?? userInfo.Email ?? "",
+            FirstName = jwt.Claims.FirstOrDefault(c => c.Type == "given_name")?.Value ?? userInfo.GivenName ?? "",
+            LastName = jwt.Claims.FirstOrDefault(c => c.Type == "family_name")?.Value ?? userInfo.FamilyName ??"",
         };
     }
 

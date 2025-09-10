@@ -13,6 +13,7 @@ using Wisp.Framework.Http;
 using Wisp.Framework.Middleware;
 using Wisp.Framework.Middleware.Auth;
 using Wisp.Framework.Middleware.Sessions;
+using File = System.IO.File;
 
 namespace Wisp.Framework.Views;
 
@@ -57,6 +58,7 @@ public class TemplateRenderer
                 viewModel.UserLoggedIn = true;
                 viewModel.CurrentUserName = user.Username;
                 viewModel.CurrentUserRoles = user.Roles;
+                viewModel.CurrentUserId = user.Id;
             }
         }
 

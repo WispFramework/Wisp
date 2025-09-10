@@ -11,6 +11,7 @@ using System.Net.Sockets;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Web;
+using HttpMultipartParser;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using NetCoreServer;
@@ -84,13 +85,43 @@ public class NetCoreServerAdapter(IOptions<WispConfiguration> config, Router rou
                     if (context.IsHandled) break;
                 }
 
-                if (context.Request.Headers.TryGetValue("Content-Type", out var ct))
+                var ct = context.Request.Headers.GetOrDefaultIgnoreCaseReadonly("Content-Type");
+                if (ct is not null)
                 {
                     if (ct == "application/x-www-form-urlencoded")
                     {
                         var nvc = HttpUtility.ParseQueryString(request.Body);
 
                         context.Request.FormData = nvc.AllKeys.ToDictionary(k => k!, k => nvc[k]!);
+                    }
+                    else if (ct.StartsWith("multipart/form-data"))
+                    {
+                        var boundary = ct.Split("boundary=")[1];
+                        var parser = await MultipartFormDataParser.ParseAsync(new MemoryStream(request.BodyBytes), boundary);
+
+                        context.Request.Files ??= new();
+                        foreach (var file in parser.Files)
+                        {
+                            if(file is null) continue;
+                            using var ms = new MemoryStream();
+                            file.Data.Position = 0;
+                            await file.Data.CopyToAsync(ms);
+                            ms.Position = 0;
+                            var content = ms.ToArray();
+                            context.Request.Files.Add(new File
+                            {
+                                ContentType = file.ContentType,
+                                Filename = file.FileName,
+                                Data = content,
+                            });
+                        }
+
+                        context.Request.FormData ??= new();
+                        foreach (var field in parser.Parameters)
+                        {
+                            if(field is null) continue;
+                            context.Request.FormData[field.Name] = field.Data;
+                        }
                     }
                 }
 

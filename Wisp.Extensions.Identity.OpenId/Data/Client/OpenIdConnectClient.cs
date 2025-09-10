@@ -68,7 +68,6 @@ public class OpenIdConnectClient
         bool https,
         CancellationToken cancellationToken = default)
     {
-
         if (host == "127.0.0.1") host = "localhost";
         
         var discoResult = await GetDiscoveryAsync(cancellationToken);
@@ -111,6 +110,8 @@ public class OpenIdConnectClient
     {
         var discoResult = await GetDiscoveryAsync(cancellationToken);
         if (!discoResult.Ok) return Result<OpenIdTokenResponse, OpenIdError>.Failure(discoResult.Error);
+        
+        if (host == "127.0.0.1") host = "localhost";
         
         var values = new Dictionary<string, string>
         {

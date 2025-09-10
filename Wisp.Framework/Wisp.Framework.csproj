@@ -38,6 +38,7 @@ at your option.
     <!-- <FrameworkReference Include="Microsoft.AspNetCore.App" /> -->
     <PackageReference Include="Fluid.Core" Version="2.25.0" />
     <PackageReference Include="Fluid.ViewEngine" Version="2.25.0" />
+    <PackageReference Include="HttpMultipartParser" Version="9.1.0" />
     <PackageReference Include="microsoft.extensions.configuration" Version="9.0.7" />
     <PackageReference Include="microsoft.extensions.configuration.binder" Version="9.0.7" />
     <PackageReference Include="microsoft.extensions.configuration.json" Version="9.0.7" />

@@ -17,4 +17,6 @@ public class ViewModel
     public required object Model { get; set; }
 
     public Dictionary<string, object?> Middleware { get; set; } = new();
+    
+    public string CurrentUserId { get; set; } = string.Empty;
 }

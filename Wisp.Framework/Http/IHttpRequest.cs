@@ -51,6 +51,11 @@ public interface IHttpRequest
     Dictionary<string, string> PathVars { get; set; }
     
     Dictionary<string, string> FormData { get; set; }
+    
+    /// <summary>
+    /// multipart/form-data files
+    /// </summary>
+    List<File> Files { get; set; }
 
     IPEndPoint ClientEndpoint { get; set; }
 

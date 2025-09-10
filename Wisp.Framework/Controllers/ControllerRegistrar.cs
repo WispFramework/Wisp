@@ -61,15 +61,18 @@ public class ControllerRegistrar
                     var args = BuildControllerArgs(method, serviceProvider, context.Request, log);
                     var result = await InvokeControllerAsync(method, controllerInstance, args);
 
-                    EnsureResultBox(result, method, controllerInstance);
+                    var isContentfulResult = EnsureResultBox(result, method, controllerInstance);
 
-                    if (result is ViewResult viewResult)
+                    if (isContentfulResult)
                     {
-                        await WriteViewResponseAsync(context, viewResult, renderer);
-                    }
-                    else
-                    {
-                        await WriteBoxResponseAsync(context, result!);
+                        if (result is ViewResult viewResult)
+                        {
+                            await WriteViewResponseAsync(context, viewResult, renderer);
+                        }
+                        else
+                        {
+                            await WriteBoxResponseAsync(context, result!);
+                        }
                     }
                 };
 
@@ -214,13 +217,14 @@ public class ControllerRegistrar
         return result;
     }
 
-    private static void EnsureResultBox(object? result, MethodInfo method, object controllerInstance)
+    private static bool EnsureResultBox(object? result, MethodInfo method, object controllerInstance)
     {
-        if (result is null)
-            throw new ArgumentException($"could not parse controller result for {controllerInstance.GetType().Name}#{method.Name}");
-
-        if (!IsUnboundGenericInstance(result, typeof(IResultBox<>)))
-            throw new ArgumentException($"controller {controllerInstance.GetType().Name}#{method.Name} did not return an implementation of IResultBox<>");
+        // if (result is null)
+        //     throw new ArgumentException($"could not parse controller result for {controllerInstance.GetType().Name}#{method.Name}");
+        return result is not null && IsUnboundGenericInstance(result, typeof(IResultBox<>));
+       // if (!IsUnboundGenericInstance(result, typeof(IResultBox<>)))
+       //     throw new ArgumentException($"controller {controllerInstance.GetType().Name}#{method.Name} did not return an implementation of IResultBox<>");
+               
     }
 
     private static async Task WriteViewResponseAsync(IHttpContext context, ViewResult viewResult, TemplateRenderer renderer)
