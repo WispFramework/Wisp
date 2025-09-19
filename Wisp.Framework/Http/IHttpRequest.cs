@@ -58,6 +58,8 @@ public interface IHttpRequest
     List<File> Files { get; set; }
 
     IPEndPoint ClientEndpoint { get; set; }
+    
+    string ContentType { get; set; }
 
     /// <summary>
     /// The request body

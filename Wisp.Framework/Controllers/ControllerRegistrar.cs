@@ -13,6 +13,7 @@ using Wisp.Framework.Extensions;
 using Wisp.Framework.Http;
 using Wisp.Framework.Middleware.Auth;
 using Wisp.Framework.Middleware.Sessions;
+using Wisp.Framework.Util;
 using Wisp.Framework.Views;
 using static Wisp.Framework.Utils;
 
@@ -105,6 +106,11 @@ public class ControllerRegistrar
             return true;
         }
 
+        if (authAttr.Authenticator != null)
+        {
+            authenticator = sp.GetRequiredKeyedService<IAuthenticator>(authAttr.Authenticator);
+        }
+
         if (!await authenticator.AuthenticateRoute(authAttr.Roles))
         {
             var flashService = sp.GetService<FlashService>();
@@ -148,10 +154,20 @@ public class ControllerRegistrar
                     if (parsed != null) return parsed;
                 }
 
+                // Inject raw body data
+                if (p.GetCustomAttribute<RawBodyAttribute>() != null)
+                {
+                    var bodyStream = new MemoryStream();
+                    request.Body.Position = 0;
+                    request.Body.CopyTo(bodyStream);
+                    bodyStream.Position = 0;
+                    return bodyStream.ToArray();
+                }
+
                 // Inject Headers
                 if (p.GetCustomAttribute<HeaderAttribute>() is not null)
                 {
-                    var header = request.Headers.GetOrDefaultIgnoreCaseReadonly(p.Name!);
+                    var header = request.Headers.FirstOrDefault(h => string.Equals(h.Key, p.Name, StringComparison.OrdinalIgnoreCase)).Value;
                     if(header is not null) return ConvertToType(header, p.ParameterType);
                     return null;
                 }
@@ -261,6 +277,11 @@ public class ControllerRegistrar
 
         var (serialized, isSimple) = ControllerResultSerializer.Serialize(value);
 
+        if (box is IResultBox<Error> errorResult)
+        {
+            context.Response.StatusCode = errorResult.Value?.Code ?? 500;
+        }
+        
         context.Response.ContentType = isSimple ? "text/plain" : "application/json";
         context.Response.Body = new MemoryStream(serialized.AsUtf8Bytes());
     }

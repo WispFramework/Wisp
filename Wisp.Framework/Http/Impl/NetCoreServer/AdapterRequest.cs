@@ -48,6 +48,8 @@ public class AdapterRequest(HttpRequest req) : IHttpRequest
 
     public List<File> Files { get; set; } = new();
 
+    public string ContentType { get; set; } = "application/octet-stream";
+
     [JsonIgnore]
     public Stream Body => new MemoryStream(req.BodyBytes ?? []);
 

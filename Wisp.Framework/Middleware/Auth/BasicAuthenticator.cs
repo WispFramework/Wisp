@@ -40,9 +40,11 @@ public class BasicAuthenticator(IHttpContextAccessor accessor, ILogger<BasicAuth
 
         var rolesHash = new HashSet<string>(roles, StringComparer.OrdinalIgnoreCase);
 
-        if (roles.Count > 0 && user.Roles.Any(r => rolesHash.Contains(r)))
+        if (roles.Count == 0 || !user.Roles.Any(r => rolesHash.Contains(r)))
         {
             log.LogDebug("authentication failed: role mismatch");
+            log.LogDebug("user has roles: {Roles}", string.Join(", ", user.Roles));
+            log.LogDebug("allowed roles: {Roles}", string.Join(", ", rolesHash));
             return false;
         }
 

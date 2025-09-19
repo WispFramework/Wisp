@@ -10,3 +10,5 @@ public class ResultBox<T> : IResultBox<T>
 
     public Type ValueType => typeof(T);
 }
+
+public class ResultBox(object value) : ResultBox<object>(value) {}

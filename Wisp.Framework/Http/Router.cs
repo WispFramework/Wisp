@@ -57,7 +57,7 @@ public class Router(ILogger<Router> log, IEnumerable<IHttpMiddleware> middleware
         {
             foreach (var route in routes)
             {
-                var match = route.Key.Match(uri.Split('?')[0]);
+                var match = route.Key.Match(uri.TrimEnd('/').Split('?')[0]);
                 if (match.Success)
                 {
                     var routeParams = new Dictionary<string, string>();

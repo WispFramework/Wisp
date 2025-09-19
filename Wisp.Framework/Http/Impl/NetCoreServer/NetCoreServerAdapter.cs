@@ -86,6 +86,8 @@ public class NetCoreServerAdapter(IOptions<WispConfiguration> config, Router rou
                 }
 
                 var ct = context.Request.Headers.GetOrDefaultIgnoreCaseReadonly("Content-Type");
+                context.Request.ContentType = ct ?? "application/octet-stream";
+                
                 if (ct is not null)
                 {
                     if (ct == "application/x-www-form-urlencoded")

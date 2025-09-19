@@ -163,6 +163,15 @@ public class WispHostBuilder
         return this;
     }
 
+    public WispHostBuilder UseCors(IConfigurationSection? configSection = null)
+    {
+        configSection ??= Configuration.GetSection("Wisp:Extensions:Cors");
+        Services.Configure<CorsMiddlewareConfig>(configSection);
+        AddMiddleware<CorsMiddleware>();
+
+        return this;
+    }
+
     /// <summary>
     /// Finalizes configuration and returns an application builder
     /// </summary>
