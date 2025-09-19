@@ -1,0 +1,35 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net9.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <PackageLicenseExpression>MIT OR Apache-2.0</PackageLicenseExpression>
+        
+        <PackageId>Wisp.Extensions.OpenApi</PackageId>
+        <Authors>Jakub Sycha (utf-8x)</Authors>
+        <Company>Wisp</Company>
+        <Description>An OpenAPI schema generator and Swagger UI for the Wisp Framework</Description>
+        <PackageProjectUrl>https://codeberg.org/utf-8x/WispFramework/Wisp</PackageProjectUrl>
+        <RepositoryUrl>htps://codeberg.org/utf-8x/WispFramework/Wisp.git</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+        <PackageTags>web,framework,lightweight,wisp</PackageTags>
+        
+        <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+        <PublishRepositoryUrl>true</PublishRepositoryUrl>
+        <EmbedUntrackedSources>true</EmbedUntrackedSources>
+        <IncludeSymbols>true</IncludeSymbols>
+        <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="NSwag.Core" Version="14.6.0" />
+        <PackageReference Include="Microsoft.OpenApi" Version="2.3.1" />
+        <ProjectReference Include="../Wisp.Framework/Wisp.Framework.csproj" />
+    </ItemGroup>
+    
+    <ItemGroup>
+        <None Include="README.md" Pack="true" PackagePath="/" />
+    </ItemGroup>
+</Project>

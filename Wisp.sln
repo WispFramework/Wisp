@@ -11,6 +11,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Wisp.Tests", "Wisp.Tests\Wi
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Wisp.Extensions.Identity.OpenId", "Wisp.Extensions.Identity.OpenId\Wisp.Extensions.Identity.OpenId.csproj", "{6CFF0216-07B1-4BD0-B0A9-2A645EA669DB}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Wisp.Extensions.OpenApi", "Wisp.Extensions.OpenApi\Wisp.Extensions.OpenApi.csproj", "{FC943154-B931-4FD7-977C-ABEF8C3C7E42}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -69,6 +71,18 @@ Global
 		{6CFF0216-07B1-4BD0-B0A9-2A645EA669DB}.Release|x64.Build.0 = Release|Any CPU
 		{6CFF0216-07B1-4BD0-B0A9-2A645EA669DB}.Release|x86.ActiveCfg = Release|Any CPU
 		{6CFF0216-07B1-4BD0-B0A9-2A645EA669DB}.Release|x86.Build.0 = Release|Any CPU
+		{FC943154-B931-4FD7-977C-ABEF8C3C7E42}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FC943154-B931-4FD7-977C-ABEF8C3C7E42}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FC943154-B931-4FD7-977C-ABEF8C3C7E42}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{FC943154-B931-4FD7-977C-ABEF8C3C7E42}.Debug|x64.Build.0 = Debug|Any CPU
+		{FC943154-B931-4FD7-977C-ABEF8C3C7E42}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{FC943154-B931-4FD7-977C-ABEF8C3C7E42}.Debug|x86.Build.0 = Debug|Any CPU
+		{FC943154-B931-4FD7-977C-ABEF8C3C7E42}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FC943154-B931-4FD7-977C-ABEF8C3C7E42}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FC943154-B931-4FD7-977C-ABEF8C3C7E42}.Release|x64.ActiveCfg = Release|Any CPU
+		{FC943154-B931-4FD7-977C-ABEF8C3C7E42}.Release|x64.Build.0 = Release|Any CPU
+		{FC943154-B931-4FD7-977C-ABEF8C3C7E42}.Release|x86.ActiveCfg = Release|Any CPU
+		{FC943154-B931-4FD7-977C-ABEF8C3C7E42}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
