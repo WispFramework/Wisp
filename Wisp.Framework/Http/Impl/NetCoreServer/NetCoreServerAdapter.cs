@@ -71,6 +71,17 @@ public class NetCoreServerAdapter(IOptions<WispConfiguration> config, Router rou
             {
                 var context = new AdapterContext(request, this);
 
+                var transferEncoding = context.Request.Headers.GetOrDefaultIgnoreCaseReadonly("Transfer-Encoding");
+                var isChunked = transferEncoding?.Equals("chunked", StringComparison.OrdinalIgnoreCase) ?? false;
+                if (isChunked)
+                {
+                    var requestBodyStream = new MemoryStream();
+                    context.Request.Body.Position = 0;
+                    await context.Request.Body.CopyToAsync(requestBodyStream);
+                    
+                    context.Request.Body = new MemoryStream(DecodeChunked(requestBodyStream.ToArray()));
+                }
+                
                 var clientEndpoint = Socket.RemoteEndPoint as IPEndPoint;
                 if (clientEndpoint is not null)
                 {
@@ -166,7 +177,7 @@ public class NetCoreServerAdapter(IOptions<WispConfiguration> config, Router rou
 
                     return;
                 }
-
+                
                 context.Response.Body.Position = 0;
                 using var bms = new MemoryStream();
                 await context.Response.Body.CopyToAsync(bms);
@@ -223,6 +234,31 @@ public class NetCoreServerAdapter(IOptions<WispConfiguration> config, Router rou
 
                 SendResponse(res);
             }
+        }
+
+        private static byte[] DecodeChunked(byte[] chunkedData)
+        {
+            using var ms = new MemoryStream();
+            int pos = 0;
+
+            while (pos < chunkedData.Length)
+            {
+                // read chunk size (hex) until CRLF
+                int crlf = Array.IndexOf(chunkedData, (byte)'\n', pos);
+                if (crlf < 0) break;
+
+                var line = System.Text.Encoding.ASCII.GetString(chunkedData, pos, crlf - pos).Trim();
+                if (!int.TryParse(line, System.Globalization.NumberStyles.HexNumber, null, out int chunkSize))
+                    throw new Exception("Invalid chunk size");
+
+                if (chunkSize == 0) break;
+
+                pos = crlf + 1;
+                ms.Write(chunkedData, pos, chunkSize);
+                pos += chunkSize + 2; // skip \r\n after chunk
+            }
+
+            return ms.ToArray();
         }
 
         private async Task<NCSResponse> MakeResponse(IHttpResponse res)

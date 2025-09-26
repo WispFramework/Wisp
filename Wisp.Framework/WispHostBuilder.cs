@@ -6,6 +6,7 @@
 // at your option.
 
 using System.ComponentModel;
+using System.Reflection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -17,6 +18,7 @@ using Wisp.Framework.Middleware;
 using Wisp.Framework.Middleware.Auth;
 using Wisp.Framework.Middleware.ErrorPages;
 using Wisp.Framework.Middleware.Sessions;
+using Wisp.Framework.Util.ServiceDiscovery;
 using Wisp.Framework.Views;
 
 namespace Wisp.Framework;
@@ -39,6 +41,8 @@ public class WispHostBuilder
     private readonly List<Action<IServiceCollection>> _serviceBuilders = new();
     
     private Action<ILoggingBuilder>? _loggingBuilderConfig;
+    
+    private Assembly? _serviceScannerAssembly;
 
     /// <summary>
     /// The host builder configures logging, configuration and dependency injection
@@ -172,6 +176,12 @@ public class WispHostBuilder
         return this;
     }
 
+    public WispHostBuilder UseServiceDiscovery(Assembly assembly)
+    {
+        _serviceScannerAssembly = assembly;
+        return this;
+    }
+
     /// <summary>
     /// Finalizes configuration and returns an application builder
     /// </summary>
@@ -203,6 +213,14 @@ public class WispHostBuilder
         _serviceCollection.AddSingleton<IMiddlewareDataInjector, MiddlewareDataInjector>();
 
         _serviceBuilders.ForEach(s => s.Invoke(_serviceCollection));
+
+        if (_serviceScannerAssembly is not null)
+        {
+            var tempProvider = _serviceCollection.BuildServiceProvider();
+            var logger = tempProvider.GetRequiredService<ILogger<ServiceRegistrar>>();
+            var registrar = new ServiceRegistrar(_serviceCollection, logger);
+            registrar.ScanAssembly(_serviceScannerAssembly);
+        }
 
         _serviceProvider = _serviceCollection.BuildServiceProvider();
 

@@ -5,6 +5,7 @@
 //   * MIT License (https://opensource.org/licenses/MIT)
 // at your option.
 
+using System.Collections;
 using System.Reflection;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
@@ -196,6 +197,34 @@ public class ControllerRegistrar
                 // Inject Form Data 
                 if (request.FormData?.TryGetValue(p.Name!, out var formData) ?? false)
                 {
+                    var targetType = p.ParameterType;
+
+                    if (targetType.IsArray)
+                    {
+                        var elementType = targetType.GetElementType();
+                        if (elementType is null) return null;
+                        var items = formData.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                            .Select(v => ConvertToType(v, elementType))
+                            .ToArray();
+                        
+                        var array = Array.CreateInstance(elementType, items.Length);
+                        items.CopyTo(array, 0);
+                        return array;
+                    }
+
+                    if (targetType.IsGenericType &&
+                        typeof(IList<>).IsAssignableFrom(targetType.GetGenericTypeDefinition()))
+                    {
+                        var elementType = targetType.GetGenericArguments()[0];
+                        var listType = typeof(List<>).MakeGenericType(elementType);
+                        var list = (IList)Activator.CreateInstance(listType)!;
+                        foreach (var v in formData.Split(',', StringSplitOptions.RemoveEmptyEntries))
+                        {
+                            list.Add(ConvertToType(v, elementType));
+                        }
+                        return list;
+                    }
+                    
                     return ConvertToType(formData, p.ParameterType);
                 }
                 

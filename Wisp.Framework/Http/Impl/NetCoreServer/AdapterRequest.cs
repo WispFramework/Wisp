@@ -15,18 +15,32 @@ namespace Wisp.Framework.Http.Impl.NetCoreServer;
 /// <summary>
 /// This is the NetCoreServer implementation of IHttpRequest
 /// </summary>
-/// <param name="req"></param>
-public class AdapterRequest(HttpRequest req) : IHttpRequest
+public class AdapterRequest : IHttpRequest
 {
+    private readonly HttpRequest _req;
+
+    /// <summary>
+    /// This is the NetCoreServer implementation of IHttpRequest
+    /// </summary>
+    /// <param name="req"></param>
+    public AdapterRequest(HttpRequest req)
+    {
+        _req = req;
+        Path = req.Url;
+
+        Body = new MemoryStream(_req.BodyBytes ?? []);
+    }
+
+
     public string Id { get; } = Guid.NewGuid().ToString();
     
-    public string Method => req.Method;
+    public string Method => _req.Method;
 
-    public string Path { get; } =  req.Url;
+    public string Path { get; }
 
     public IPEndPoint ClientEndpoint { get; set; }
 
-    public IReadOnlyDictionary<string, string> Headers => req.GetHeaders();
+    public IReadOnlyDictionary<string, string> Headers => _req.GetHeaders();
 
     public IReadOnlyDictionary<string, string> QueryParams
     {
@@ -51,9 +65,9 @@ public class AdapterRequest(HttpRequest req) : IHttpRequest
     public string ContentType { get; set; } = "application/octet-stream";
 
     [JsonIgnore]
-    public Stream Body => new MemoryStream(req.BodyBytes ?? []);
+    public Stream Body { get; set; }
 
-    public IReadOnlyDictionary<string, string> Cookies => req.GetCookies();
+    public IReadOnlyDictionary<string, string> Cookies => _req.GetCookies();
 
     public string ReadBodyAsString()
     {

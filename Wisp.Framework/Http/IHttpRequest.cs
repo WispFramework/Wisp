@@ -65,7 +65,7 @@ public interface IHttpRequest
     /// The request body
     /// </summary>
     [JsonIgnore]
-    Stream Body { get; }
+    Stream Body { get; set; }
 
     /// <summary>
     /// Read the body stream into a string

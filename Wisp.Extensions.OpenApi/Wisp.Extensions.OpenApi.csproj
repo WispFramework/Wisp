@@ -12,7 +12,7 @@
         <Company>Wisp</Company>
         <Description>An OpenAPI schema generator and Swagger UI for the Wisp Framework</Description>
         <PackageProjectUrl>https://codeberg.org/utf-8x/WispFramework/Wisp</PackageProjectUrl>
-        <RepositoryUrl>htps://codeberg.org/utf-8x/WispFramework/Wisp.git</RepositoryUrl>
+        <RepositoryUrl>https://codeberg.org/utf-8x/WispFramework/Wisp.git</RepositoryUrl>
         <RepositoryType>git</RepositoryType>
         <PackageTags>web,framework,lightweight,wisp</PackageTags>
         
