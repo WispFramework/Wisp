@@ -70,6 +70,17 @@ public class NetCoreServerAdapter(IOptions<WispConfiguration> config, Router rou
             try
             {
                 var context = new AdapterContext(request, this);
+                
+                var protoHeader = context.Request.Headers.GetOrDefaultIgnoreCaseReadonly("x-forwarded-proto");
+                if (protoHeader is not null && protoHeader.Equals("https", StringComparison.InvariantCultureIgnoreCase))
+                    context.IsHttps = true;
+
+                var host = context.Request.Headers.GetOrDefaultIgnoreCaseReadonly("host");
+                var forwardedHost = context.Request.Headers.GetOrDefaultIgnoreCaseReadonly("x-forwarded-host");
+
+                if (forwardedHost is not null) context.HostName = forwardedHost;
+                else if (host is not null) context.HostName = host;
+                else context.HostName = string.Empty;
 
                 var transferEncoding = context.Request.Headers.GetOrDefaultIgnoreCaseReadonly("Transfer-Encoding");
                 var isChunked = transferEncoding?.Equals("chunked", StringComparison.OrdinalIgnoreCase) ?? false;

@@ -26,7 +26,9 @@ public class AdapterContext : IHttpContext
         IsHttps = false;
     }
 
-    public bool IsHttps { get; private set; }
+    public bool IsHttps { get; set; }
+    
+    public string HostName { get; set; }
 
     public IHttpRequest Request { get; set; }
 

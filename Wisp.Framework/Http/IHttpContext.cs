@@ -23,7 +23,9 @@ public interface IHttpContext
     /// <summary>
     /// This this request HTTPS (or HTTP)?
     /// </summary>
-    bool IsHttps { get; }
+    bool IsHttps { get; set; }
+    
+    string HostName { get; set; }
 
     /// <summary>
     /// The response object

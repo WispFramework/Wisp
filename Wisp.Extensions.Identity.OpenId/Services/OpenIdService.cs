@@ -27,7 +27,8 @@ public class OpenIdService(OpenIdConnectClient client, IAuthenticator authentica
     /// <exception cref="Exception"></exception>
     public async Task GetAuthenticate(IHttpContext context)
     {
-        var host = context.Request.Headers.GetOrDefaultIgnoreCaseReadonly("host");
+        // var host = context.Request.Headers.GetOrDefaultIgnoreCaseReadonly("host");
+        var host = context.HostName;
         if (host is null)
             throw new InvalidDataException("cannot construct redirect_uri because there is not Host header");
 
@@ -166,7 +167,7 @@ public class OpenIdService(OpenIdConnectClient client, IAuthenticator authentica
     }
 
     public string GetHostOrThrow(IHttpContext context)
-        => context.Request.Headers.GetOrDefaultIgnoreCaseReadonly("host") 
+        => context.HostName
            ?? throw new InvalidDataException("cannot construct redirect_uri because the request is missing the Host header");
 
     private UserPrincipal BuildPrincipal(OpenIdUserInfo userInfo, OpenIdTokenResponse tokenResponse)
