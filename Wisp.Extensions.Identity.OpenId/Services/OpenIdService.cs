@@ -149,7 +149,7 @@ public class OpenIdService(OpenIdConnectClient client, IAuthenticator authentica
     {
         localState = context.Session?.Get<OpenIdAuthCall>(OpenIdStateSessionKey);
         
-        if (query.State is null || query.SessionState is null || query.Code is null || localState is null)
+        if (query.State is null || query.Code is null || localState is null)
         {
             SetResponseError(context, new
             {
