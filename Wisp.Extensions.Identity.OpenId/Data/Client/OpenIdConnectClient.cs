@@ -1,7 +1,13 @@
+// This file is part of Wisp Framework.
+// 
+// Licensed under either of
+//   * Apache License, Version 2.0 (https://www.apache.org/licenses/LICENSE-2.0)
+//   * MIT License (https://opensource.org/licenses/MIT)
+// at your option.
+
 using System.Net.Http.Headers;
 using System.Security.Cryptography;
 using System.Text.Json;
-using Microsoft.Extensions.Options;
 using Wisp.Extensions.Identity.OpenId.Config;
 using Wisp.Extensions.Identity.OpenId.Data.Api;
 using Wisp.Framework.Extensions;

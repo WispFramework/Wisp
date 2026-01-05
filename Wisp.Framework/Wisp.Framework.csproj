@@ -35,7 +35,6 @@ at your option.
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- <FrameworkReference Include="Microsoft.AspNetCore.App" /> -->
     <PackageReference Include="Fluid.Core" Version="2.31.0" />
     <PackageReference Include="Fluid.ViewEngine" Version="2.31.0" />
     <PackageReference Include="HttpMultipartParser" Version="9.2.0" />
@@ -48,7 +47,7 @@ at your option.
     <PackageReference Include="netcoreserver" Version="8.0.7" />
   </ItemGroup>
 
-  <ItemGroup>    
+  <ItemGroup>
     <None Include="..\README.md" Pack="True" PackagePath="\" />
   </ItemGroup>
 

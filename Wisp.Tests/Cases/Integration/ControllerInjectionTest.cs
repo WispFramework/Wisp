@@ -1,8 +1,14 @@
+// This file is part of Wisp Framework.
+// 
+// Licensed under either of
+//   * Apache License, Version 2.0 (https://www.apache.org/licenses/LICENSE-2.0)
+//   * MIT License (https://opensource.org/licenses/MIT)
+// at your option.
+
 using System.Net;
 using System.Text;
 using Wisp.Tests.Fixtures;
 using System.Text.Json;
-using Xunit.Abstractions;
 
 namespace Wisp.Tests.Cases.Integration;
 
