@@ -7,8 +7,11 @@
 
 namespace Wisp.Framework.Controllers;
 
+/// <summary>
+/// Injects the raw request body text
+/// </summary>
 [AttributeUsage(AttributeTargets.Parameter)]
-public class RawBodyAttribute : Attribute
+public class FromRawBodyAttribute : Attribute
 {
     
 }

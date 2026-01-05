@@ -156,7 +156,7 @@ public class ControllerRegistrar
                 }
 
                 // Inject raw body data
-                if (p.GetCustomAttribute<RawBodyAttribute>() != null)
+                if (p.GetCustomAttribute<FromRawBodyAttribute>() != null)
                 {
                     var bodyStream = new MemoryStream();
                     request.Body.Position = 0;
@@ -166,7 +166,7 @@ public class ControllerRegistrar
                 }
 
                 // Inject Headers
-                if (p.GetCustomAttribute<HeaderAttribute>() is not null)
+                if (p.GetCustomAttribute<FromHeaderAttribute>() is not null)
                 {
                     var header = request.Headers.FirstOrDefault(h => string.Equals(h.Key, p.Name, StringComparison.OrdinalIgnoreCase)).Value;
                     if(header is not null) return ConvertToType(header, p.ParameterType);
@@ -174,7 +174,7 @@ public class ControllerRegistrar
                 }
 
                 // Inject Cookies
-                if (p.GetCustomAttribute<CookieAttribute>() is not null)
+                if (p.GetCustomAttribute<FromCookieAttribute>() is not null)
                 {
                     var cookie = request.Cookies.GetOrDefaultIgnoreCaseReadonly(p.Name!);
                     if(cookie is not null) return ConvertToType(cookie, p.ParameterType);

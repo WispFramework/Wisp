@@ -13,7 +13,7 @@ namespace Wisp.Tests.Fixtures.Controllers;
 public class ControllerInjectionDemo : ControllerBase
 {
     [Route("/democontroller", "POST")]
-    public async Task<IResultBox<object>> GetDemo([FromBody] object body, [Header] string demoHeader, [Cookie] string demoCookie)
+    public async Task<IResultBox<object>> GetDemo([FromBody] object body, [FromHeader] string demoHeader, [FromCookie] string demoCookie)
     {
         return new ResultBox<object>(new
         {

@@ -19,5 +19,5 @@ public class HttpContextAccessor : IHttpContextAccessor
         return Task.CompletedTask;
     }
 
-    public Task<IHttpContext?> HttpContext => Task.FromResult(_currentContext.Value);
+    public IHttpContext? HttpContext => _currentContext.Value;
 }

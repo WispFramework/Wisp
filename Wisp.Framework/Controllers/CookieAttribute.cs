@@ -7,7 +7,10 @@
 
 namespace Wisp.Framework.Controllers;
 
-public class CookieAttribute : Attribute
+/// <summary>
+/// Injects an argument from request cookies
+/// </summary>
+public class FromCookieAttribute : Attribute
 {
     
 }

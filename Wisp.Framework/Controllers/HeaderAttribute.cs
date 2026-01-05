@@ -7,7 +7,10 @@
 
 namespace Wisp.Framework.Controllers;
 
-public class HeaderAttribute : Attribute
+/// <summary>
+/// Injects an argument from request headers
+/// </summary>
+public class FromHeaderAttribute : Attribute
 {
     
 }
