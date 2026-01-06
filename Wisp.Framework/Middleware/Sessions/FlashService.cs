@@ -28,9 +28,9 @@ public class FlashService(IHttpContextAccessor accessor, ILogger<FlashService> l
     /// </summary>
     /// <param name="message">the message</param>
     /// <param name="type">arbitrary type</param>
-    public async Task AddFlashMessage(string message, string type = "info")
+    public void AddFlashMessage(string message, string type = "info")
     {
-        var context = await accessor.HttpContext;
+        var context = accessor.HttpContext;
         if (context is null) return;
         
         var session = context.Session;
@@ -52,7 +52,7 @@ public class FlashService(IHttpContextAccessor accessor, ILogger<FlashService> l
     /// </summary>
     /// <param name="message">the message</param>
     /// <param name="type">built-in type</param>
-    public async Task AddFlashMessage(string message, FlashMessageType type)
+    public void AddFlashMessage(string message, FlashMessageType type)
     {
         var typeString = type switch
         {
@@ -63,12 +63,12 @@ public class FlashService(IHttpContextAccessor accessor, ILogger<FlashService> l
             FlashMessageType.Error => "danger",
         };
         
-        await AddFlashMessage(message, typeString);
+        AddFlashMessage(message, typeString);
     }
 
-    public async Task<List<FlashMessage>?> GetAllAndDelete()
+    public List<FlashMessage>? GetAllAndDelete()
     {
-        var context = await accessor.HttpContext;
+        var context = accessor.HttpContext;
         if (context is null) return null;
 
         var session = context.Session;
