@@ -14,48 +14,49 @@ public class OpenIdAuthenticator(IHttpContextAccessor contextAccessor) : IAuthen
 {
     public const string OpenIdAuthenticatorPrincipalSessionKey = "oidc-principal";
     
-    public async Task<bool> AuthenticateRoute(List<string> roles)
+    public Task<bool> AuthenticateRoute(List<string> roles)
     {
-        var context = await contextAccessor.HttpContext;
+        var context = contextAccessor.HttpContext;
         if(context is null || context.Session is null) throw new Exception("session store not present");
 
         var principal = context.Session.Get<UserPrincipal>(OpenIdAuthenticatorPrincipalSessionKey);
         
-        if (principal is null) return false;
-        if (roles.Count < 1) return true;
+        if (principal is null) return Task.FromResult(false);
+        if (roles.Count < 1) return Task.FromResult(true);
 
         var rolesHash = new HashSet<string>(roles, StringComparer.OrdinalIgnoreCase);
 
-        if (principal.Roles.Any(r => rolesHash.Contains(r))) return true;
+        if (principal.Roles.Any(r => rolesHash.Contains(r))) return Task.FromResult(true);
 
-        return false;
+        return Task.FromResult(false);
     }
 
-    public async Task<UserPrincipal?> GetUser()
+    public Task<UserPrincipal?> GetUser()
     {
-        var context = await contextAccessor.HttpContext;
+        var context = contextAccessor.HttpContext;
         if(context is null || context.Session is null) throw new Exception("session store not present");
 
-        return context.Session.Get<UserPrincipal>(OpenIdAuthenticatorPrincipalSessionKey);
+        return Task.FromResult(context.Session.Get<UserPrincipal>(OpenIdAuthenticatorPrincipalSessionKey));
     }
 
-    public async Task<bool> Authenticate(UserPrincipal principal)
+    public Task<bool> Authenticate(UserPrincipal principal)
     {
-        var context = await contextAccessor.HttpContext;
+        var context = contextAccessor.HttpContext;
         if(context is null || context.Session is null) throw new Exception("session store not present");
 
         context.Session.Set(OpenIdAuthenticatorPrincipalSessionKey, principal);
         
-        return true;
+        return Task.FromResult(true);
     }
 
-    public async Task Deauthenticate()
+    public Task Deauthenticate()
     {
-        var context = await contextAccessor.HttpContext;
+        var context = contextAccessor.HttpContext;
         if(context is null || context.Session is null) throw new Exception("session store not present");
         
         context.Session.Remove(OpenIdAuthenticatorPrincipalSessionKey);
         context.Session.Remove(OpenIdService.OpenIdStateSessionKey);
         context.Session.Remove(OpenIdService.OpenIdTokenSessionKey);
+        return Task.CompletedTask;
     }
 }

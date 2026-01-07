@@ -12,7 +12,9 @@ using Wisp.Extensions.Identity.OpenId.Data.Api;
 
 namespace Wisp.Extensions.Identity.OpenId.Config;
 
-public class OpenIdExtensionConfigBuilder(IServiceCollection serviceCollection)
+#pragma warning disable CS9113 // Parameter is unread.
+public class OpenIdExtensionConfigBuilder(IServiceCollection _)
+#pragma warning restore CS9113 // Parameter is unread.
 {
     private readonly OpenIdExtensionConfig _config = new();
     

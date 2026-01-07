@@ -64,7 +64,7 @@ public class TemplateRenderer
 
         if (_flashService is not null)
         {
-            var flashes = await _flashService.GetAllAndDelete();
+            var flashes = _flashService.GetAllAndDelete();
             if(flashes is not null) viewModel.FlashMessages = flashes;
         }
 

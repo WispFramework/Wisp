@@ -118,7 +118,7 @@ public class ControllerRegistrar
             
             if (authConfig is not null)
             {
-                if(flashService is not null) await flashService.AddFlashMessage("You are not authorized to access this resource", FlashService.FlashMessageType.Error);
+                if(flashService is not null) flashService.AddFlashMessage("You are not authorized to access this resource", FlashService.FlashMessageType.Error);
                 context.Response.StatusCode = 307;
                 context.Response.Headers.Add("Location", authConfig.FailureRedirectUri);
             }

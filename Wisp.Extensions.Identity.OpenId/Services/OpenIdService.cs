@@ -17,7 +17,9 @@ using Wisp.Framework.Middleware.Auth;
 
 namespace Wisp.Extensions.Identity.OpenId.Services;
 
-public class OpenIdService(OpenIdConnectClient client, IAuthenticator authenticator, OpenIdExtensionConfig extensionConfig, ILogger<OpenIdService> log)
+#pragma warning disable CS9113 // Parameter is unread.
+public class OpenIdService(OpenIdConnectClient client, IAuthenticator authenticator, OpenIdExtensionConfig extensionConfig, ILogger<OpenIdService> _)
+#pragma warning restore CS9113 // Parameter is unread.
 {
     public const string OpenIdStateSessionKey = "oidc-state";
     public const string OpenIdTokenSessionKey = "oidc-token";
