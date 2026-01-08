@@ -42,7 +42,7 @@ public class TemplateRenderer
         _viewOptions.TemplateOptions.MemberAccessStrategy = UnsafeMemberAccessStrategy.Instance;
         _viewOptions.TemplateOptions.MemberAccessStrategy.MemberNameStrategy = MemberNameStrategies.RenameSnakeCase;
         _viewOptions.TemplateOptions.FileProvider = new PhysicalFileProvider(Path.Combine(Directory.GetCurrentDirectory(), "Templates"));
-        _viewOptions.Parser = new FluidViewParser(new FluidParserOptions { AllowFunctions = true });
+        _viewOptions.Parser = new FluidViewParser(new FluidParserOptions { AllowFunctions = true, AllowParentheses = true});
         _renderer = new(_viewOptions);
     }
 
