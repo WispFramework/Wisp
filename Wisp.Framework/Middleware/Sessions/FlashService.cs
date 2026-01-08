@@ -10,7 +10,7 @@ using Wisp.Framework.Http;
 
 namespace Wisp.Framework.Middleware.Sessions;
 
-public class FlashService(IHttpContextAccessor accessor, ILogger<FlashService> log)
+public class FlashService(ISessionAccessor sessionAccessor, ILogger<FlashService> log)
 {
     private Dictionary<string, List<FlashMessage>> _messages = new();
 
@@ -30,13 +30,16 @@ public class FlashService(IHttpContextAccessor accessor, ILogger<FlashService> l
     /// <param name="type">arbitrary type</param>
     public void AddFlashMessage(string message, string type = "info")
     {
-        var context = accessor.HttpContext;
-        if (context is null) return;
+        // var context = accessor.HttpContext;
+        // if (context is null) return;
+        //
+        // var session = context.Session;
+        // if (session is null) return;
+        //
+        // var sessionId = session.Id;
         
-        var session = context.Session;
-        if (session is null) return;
-
-        var sessionId = session.Id;
+        var sessionId = sessionAccessor.GetSessionId().ConfigureAwait(false).GetAwaiter().GetResult();
+        if (sessionId is null) return;
 
         if (!_messages.TryGetValue(sessionId, out var list))
         {
@@ -68,27 +71,18 @@ public class FlashService(IHttpContextAccessor accessor, ILogger<FlashService> l
 
     public List<FlashMessage>? GetAllAndDelete()
     {
-        var context = accessor.HttpContext;
-        if (context is null) return null;
-
-        var session = context.Session;
-        if (session is null) return null;
-        
-        log.LogDebug("getting all flashes for {SessionId}", session.Id);
-
-        var sessionId = session.Id;
+        var sessionId = sessionAccessor.GetSessionId().ConfigureAwait(false).GetAwaiter().GetResult();
+        if(sessionId is null) return null;
 
         if (!_messages.TryGetValue(sessionId, out var list) || list.Count == 0)
         {
             log.LogDebug("nothing found");
-            return new List<FlashMessage>();
+            return [];
         }
         
         // Take all messages and clear them
         var toReturn = new List<FlashMessage>(list);
         list.Clear();
-        
-        log.LogDebug("found {N} messages", toReturn.Count);
 
         return toReturn;
     }

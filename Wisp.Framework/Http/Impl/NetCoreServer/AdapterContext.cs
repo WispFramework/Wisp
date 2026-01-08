@@ -34,8 +34,6 @@ public class AdapterContext : IHttpContext
 
     public IHttpResponse Response { get; set; }
 
-    public ISession? Session { get; set; }
-
     public bool IsHandled { get; set; }
     
     public Dictionary<string, object?> ExtraData {get;set;} = new();

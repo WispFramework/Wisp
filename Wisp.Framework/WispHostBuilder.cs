@@ -144,7 +144,7 @@ public class WispHostBuilder
         if (_inMemorySessionEnabled) return this;
         
         _serviceCollection.AddSingleton<ISessionStore, InMemorySessionStore>();
-        _serviceCollection.AddSingleton<IHttpMiddleware, SessionMiddleware>();
+        _serviceCollection.AddScoped<ISessionAccessor, SessionAccessor>();
         _inMemorySessionEnabled = true;
 
         return this;

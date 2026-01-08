@@ -11,29 +11,30 @@ namespace Wisp.Framework.Middleware.Sessions;
 
 public class InMemorySessionStore : ISessionStore
 {
-    private readonly ConcurrentDictionary<string, ISession> _store = new();
+    private readonly ConcurrentDictionary<string, ConcurrentDictionary<string, object?>> _store = new();
     
-    public Task<ISession?> GetAsync(string sessionId)
+    public Task<T?> GetAsync<T>(string sessionId, string key)
     {
-        return Task.FromResult(_store.GetValueOrDefault(sessionId));
+        if (!_store.TryGetValue(sessionId, out var session)) return Task.FromResult<T?>(default);
+        if (session.TryGetValue(key, out var value) && value is T ret) return Task.FromResult<T?>(ret);
+        return Task.FromResult<T?>(default);
     }
 
-    public Task<ISession> CreateAsync()
+    public Task SetAsync<T>(string sessionId, string key, T value)
     {
-        var id = Guid.NewGuid().ToString();
-        var session = new WispSession
+        if (!_store.TryGetValue(sessionId, out var session)) _store[sessionId] = [];
+        _store[sessionId][key] = value;
+
+        return Task.CompletedTask;
+    }
+
+    public Task ClearAsync(string sessionId, string key)
+    {
+        if (_store.TryGetValue(sessionId, out var session) && session.ContainsKey(key))
         {
-            Id = id,
-        };
-        _store[id] = session;
-        
-        return Task.FromResult<ISession>(session);
-    }
+            session[key] = null;
+        }
 
-    public Task StoreAsync(string sessionId, ISession session)
-    {
-        _store[sessionId] = session;
-        
         return Task.CompletedTask;
     }
 }

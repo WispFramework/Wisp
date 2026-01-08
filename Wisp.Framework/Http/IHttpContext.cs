@@ -35,7 +35,7 @@ public interface IHttpContext
     /// <summary>
     /// An optional session object
     /// </summary>
-    ISession? Session { get; set; }
+    // ISession? Session { get; set; }
 
     /// <summary>
     /// If a context is handled, it shouldn't be processed any further and the response should be sent

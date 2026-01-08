@@ -14,11 +14,12 @@ using Wisp.Extensions.Identity.OpenId.Data.Client;
 using Wisp.Framework.Extensions;
 using Wisp.Framework.Http;
 using Wisp.Framework.Middleware.Auth;
+using Wisp.Framework.Middleware.Sessions;
 
 namespace Wisp.Extensions.Identity.OpenId.Services;
 
 #pragma warning disable CS9113 // Parameter is unread.
-public class OpenIdService(OpenIdConnectClient client, IAuthenticator authenticator, OpenIdExtensionConfig extensionConfig, ILogger<OpenIdService> _)
+public class OpenIdService(OpenIdConnectClient client, IAuthenticator authenticator, ISessionAccessor sessionAccessor, OpenIdExtensionConfig extensionConfig, ILogger<OpenIdService> _)
 #pragma warning restore CS9113 // Parameter is unread.
 {
     public const string OpenIdStateSessionKey = "oidc-state";
@@ -49,10 +50,8 @@ public class OpenIdService(OpenIdConnectClient client, IAuthenticator authentica
             return;
         }
 
-        if (context.Session is null) throw new Exception("session store not present");
-                
-        context.Session?.Remove(OpenIdStateSessionKey);
-        context.Session?.Set(OpenIdStateSessionKey, result.Value);
+        await sessionAccessor.ClearAsync(OpenIdStateSessionKey);
+        await sessionAccessor.SetAsync(OpenIdStateSessionKey, result.Value);
         
         context.Response.StatusCode = 307;
         context.Response.Headers.Add("Location", result.Value.AuthUrl);
@@ -79,9 +78,9 @@ public class OpenIdService(OpenIdConnectClient client, IAuthenticator authentica
             return;
         }
         
-        context.Session?.Remove(OpenIdTokenSessionKey);
+        await sessionAccessor.ClearAsync(OpenIdTokenSessionKey);
         tokenResult.Value.TokenValidFrom = DateTime.UtcNow;
-        context.Session?.Set(OpenIdTokenSessionKey, tokenResult.Value);
+        await sessionAccessor.SetAsync(OpenIdTokenSessionKey, tokenResult.Value);
 
         var userInfoResult = await client.GetUserInfoAsync(tokenResult.Value);
         if (!userInfoResult.Ok)
@@ -108,7 +107,7 @@ public class OpenIdService(OpenIdConnectClient client, IAuthenticator authentica
     /// <returns></returns>
     public async Task<string?> GetToken(IHttpContext context)
     {
-        var tokenState = context.Session?.Get<OpenIdTokenResponse>(OpenIdTokenSessionKey);
+        var tokenState = await sessionAccessor.GetAsync<OpenIdTokenResponse>(OpenIdTokenSessionKey);
         if (tokenState is null) return null;
 
         if (DateTime.UtcNow.AddSeconds(tokenState.ExpiresIn) >= tokenState.TokenValidFrom)
@@ -128,7 +127,7 @@ public class OpenIdService(OpenIdConnectClient client, IAuthenticator authentica
     /// <returns>True is success, False if refresh token is expired</returns>
     private async Task<OpenIdTokenResponse?> RefreshToken(IHttpContext context)
     {
-        var tokenState = context.Session?.Get<OpenIdTokenResponse>(OpenIdTokenSessionKey);
+        var tokenState = await sessionAccessor.GetAsync<OpenIdTokenResponse>(OpenIdTokenSessionKey);
         if (tokenState is null) return null;
 
         if (DateTime.UtcNow.AddSeconds(tokenState.RefreshExpiresIn) >= tokenState.TokenValidFrom) return null;
@@ -137,8 +136,8 @@ public class OpenIdService(OpenIdConnectClient client, IAuthenticator authentica
         var token = newTokens.Value;
         token.TokenValidFrom = DateTime.UtcNow;
         
-        context.Session?.Remove(OpenIdTokenSessionKey);
-        context.Session?.Set(OpenIdTokenSessionKey, token);
+        await sessionAccessor.ClearAsync(OpenIdTokenSessionKey);
+        await sessionAccessor.SetAsync(OpenIdTokenSessionKey, token);
 
         return token;
     }
@@ -156,7 +155,11 @@ public class OpenIdService(OpenIdConnectClient client, IAuthenticator authentica
     private bool ValidateStateAndParams(IHttpContext context,
         (string? State, string? SessionState, string? Iss, string? Code) query, out OpenIdAuthCall? localState)
     {
-        localState = context.Session?.Get<OpenIdAuthCall>(OpenIdStateSessionKey);
+        // localState = context.Session?.Get<OpenIdAuthCall>(OpenIdStateSessionKey);
+        var stateFromSession = sessionAccessor.GetAsync<OpenIdAuthCall>(OpenIdStateSessionKey)
+            .ConfigureAwait(false).GetAwaiter().GetResult();
+
+        localState = stateFromSession;
         
         if (query.State is null || query.Code is null || localState is null)
         {
@@ -209,7 +212,7 @@ public class OpenIdService(OpenIdConnectClient client, IAuthenticator authentica
 
     public async Task GetLogout(IHttpContext context)
     {
-        context.Session?.Remove(OpenIdStateSessionKey);
+        await sessionAccessor.ClearAsync(OpenIdStateSessionKey);
                 
         await authenticator.Deauthenticate();
                 
