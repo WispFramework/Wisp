@@ -38,7 +38,7 @@ public class FlashService(ISessionAccessor sessionAccessor, ILogger<FlashService
         //
         // var sessionId = session.Id;
         
-        var sessionId = sessionAccessor.GetSessionId().ConfigureAwait(false).GetAwaiter().GetResult();
+        var sessionId = sessionAccessor.GetSessionId().ConfigureAwait(true).GetAwaiter().GetResult();
         if (sessionId is null) return;
 
         if (!_messages.TryGetValue(sessionId, out var list))
@@ -71,7 +71,7 @@ public class FlashService(ISessionAccessor sessionAccessor, ILogger<FlashService
 
     public List<FlashMessage>? GetAllAndDelete()
     {
-        var sessionId = sessionAccessor.GetSessionId().ConfigureAwait(false).GetAwaiter().GetResult();
+        var sessionId = sessionAccessor.GetSessionId().ConfigureAwait(true).GetAwaiter().GetResult();
         if(sessionId is null) return null;
 
         if (!_messages.TryGetValue(sessionId, out var list) || list.Count == 0)

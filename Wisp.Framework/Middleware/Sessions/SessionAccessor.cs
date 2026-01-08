@@ -5,11 +5,13 @@
 //   * MIT License (https://opensource.org/licenses/MIT)
 // at your option.
 
+using Microsoft.Extensions.Logging;
+using Wisp.Framework.Extensions;
 using Wisp.Framework.Http;
 
 namespace Wisp.Framework.Middleware.Sessions;
 
-public class SessionAccessor(ISessionStore store, IHttpContextAccessor accessor) : ISessionAccessor
+public class SessionAccessor(ISessionStore store, IHttpContextAccessor accessor, ILogger<SessionAccessor> log) : ISessionAccessor
 {
     public async Task<T?> GetAsync<T>(string key)
     {
@@ -36,6 +38,21 @@ public class SessionAccessor(ISessionStore store, IHttpContextAccessor accessor)
     public Task<string?> GetSessionId()
     {
         var context = accessor.HttpContext;
-        return Task.FromResult(context?.Request.Cookies.GetValueOrDefault("WISP_SESSION"));
+        if (context is null)
+        {
+            return Task.FromResult<string?>(null);
+        }
+        
+        var sessionId = context.Request.Cookies.GetOrDefaultIgnoreCaseReadonly("WISP_SESSION");
+        if (sessionId is not null)
+        {
+            log.LogDebug("Session ID is {Id}", sessionId);
+            return Task.FromResult<string?>(sessionId);
+        }
+
+        log.LogDebug("Session ID was not found, creating a new one");
+        var newId = Guid.NewGuid();
+        context.Response.Cookies["WISP_SESSION"] = newId.ToString();
+        return Task.FromResult<string?>(newId.ToString());
     }
 }

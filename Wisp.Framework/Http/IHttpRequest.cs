@@ -57,6 +57,7 @@ public interface IHttpRequest
     /// </summary>
     List<File> Files { get; set; }
 
+    [JsonIgnore]
     IPEndPoint ClientEndpoint { get; set; }
     
     string ContentType { get; set; }

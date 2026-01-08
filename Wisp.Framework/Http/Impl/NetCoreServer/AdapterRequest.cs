@@ -29,6 +29,7 @@ public class AdapterRequest : IHttpRequest
         Path = req.Url;
 
         Body = new MemoryStream(_req.BodyBytes ?? []);
+        Cookies = new Dictionary<string, string>(_req.GetCookies());
     }
 
 
@@ -67,7 +68,7 @@ public class AdapterRequest : IHttpRequest
     [JsonIgnore]
     public Stream Body { get; set; }
 
-    public IReadOnlyDictionary<string, string> Cookies => _req.GetCookies();
+    public IReadOnlyDictionary<string, string> Cookies { get; }
 
     public string ReadBodyAsString()
     {
