@@ -11,6 +11,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Wisp.Framework.Configuration;
+using Wisp.Framework.Hosting;
 using Wisp.Framework.Http;
 using Wisp.Framework.Http.Impl;
 using Wisp.Framework.Http.Impl.NetCoreServer;
@@ -44,6 +45,8 @@ public class WispHostBuilder
     
     private Assembly? _serviceScannerAssembly;
 
+    private List<Type> _backgroundServices = [];
+    
     /// <summary>
     /// The host builder configures logging, configuration and dependency injection
     /// </summary>
@@ -75,6 +78,13 @@ public class WispHostBuilder
     {
         _serviceBuilders.Add(services);
 
+        return this;
+    }
+
+    public WispHostBuilder AddBackgroundService<T>() where T : class, IBackgroundService
+    {
+        _backgroundServices.Add(typeof(T));
+        _serviceCollection.AddSingleton<T>();
         return this;
     }
 
@@ -222,7 +232,21 @@ public class WispHostBuilder
             registrar.ScanAssembly(_serviceScannerAssembly);
         }
 
+        List<IBackgroundService> bgsInstances = [];
+        var tempSp = _serviceCollection.BuildServiceProvider();
+        foreach (var serviceType in _backgroundServices)
+        {
+            var instance = tempSp.GetService(serviceType);
+            if (instance is IBackgroundService bgs)
+            {
+                bgsInstances.Add(bgs);
+            }
+        }
+        _serviceCollection.AddSingleton(new BackgroundServiceManager(bgsInstances,
+            tempSp.GetRequiredService<ILogger<BackgroundServiceManager>>()));
+
         _serviceProvider = _serviceCollection.BuildServiceProvider();
+
 
         var sessionProviders = _serviceProvider.GetServices<ISessionStore>().ToList();
         if (sessionProviders.Count() > 1)
