@@ -89,3 +89,94 @@ router.Query()
         });
     });
     ```
+
+## Attribute Routing
+
+For [controllers](controllers.md), it is usually more convenient to use attribute-based routing.
+
+You can attach one or more `[Route]` attributes to a controller method to automatically register routes for that method.
+
+```csharp
+[Controller]
+public class HelloController : ControllerBase 
+{
+    [Route("/")]
+    [Route("/index")]
+    public ViewResult GetIndex() 
+    {
+        return View("index");
+    }
+    
+    [Route("/{slug}")]
+    public ViewResult GetArticle(string slug) 
+    {
+        var article = articleService.Get(slug);
+        
+        return View("article", new { Article = article });
+    }
+    
+    [Route("/hello/{name}", "POST")]
+    public ViewResult PostHello(string name, [FromForm] string message) 
+    {
+        return View("hello", new { Name = name, Message = message });
+    }
+}
+```
+
+The route attribute accepts two arguments - the path and the method.
+
+ - The method is optional and defaults to `"GET"`
+ - The path is required.
+
+### Route Path Syntax
+
+The route path consists of a literal path and any amount of optional variables. The basic
+syntax for a path variable is `{variableName}`.
+
+Optionally, you can specify a type for the variable. If the input doesn't match the type, Wisp
+will throw an error. The type is specified after a colon like this: `{variableName:int}`.
+
+The available types are:
+
+ - `string` - String (default)
+ - `int` - integer
+ - `guid` - Guid
+ - *more will be added*
+
+### Greedy Variables
+
+This is a special variable type, denoted with a star (`{someVariable:*}`). A greedy variable can only exist at the end
+of a route, and it consumes everything until the end, including slashes. Greedy variables **do not** affect query
+parameters after a `?` in the URL.
+
+For example:
+
+`[Route("/api/v1/action/{subAction:*}")]` will match all of the following
+
+ - `/api/v1/action/hello`
+ - `/api/v1/action/hello/world`
+ - `/api/v1/action/hello/world/foo`
+
+It **will not**, however, match `/api/v1/action`
+
+### Multiple Routes
+
+If you need your method to match multiple paths, allow multiple methods, or have an optional variable, you can specify
+more than one `[Route]` attribute on it.
+
+For example:
+
+```csharp
+[Route("/hello/world")]
+[Route("/hello/world/{name}")]
+public ViewResult Hello(string? name) {}
+```
+
+Will match both `/hello/world` and `/hello/world/my-name`.
+
+```csharp
+[Route("/hello/world")]
+[Route("/hello/world", "POST")]
+```
+
+Will match both `GET` and `POST` HTTP methods

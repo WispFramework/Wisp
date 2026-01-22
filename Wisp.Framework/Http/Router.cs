@@ -9,6 +9,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
+using Wisp.Framework.Controllers;
 using Wisp.Framework.Middleware;
 using Wisp.Framework.Middleware.ErrorPages;
 
@@ -93,6 +94,12 @@ public class Router(ILogger<Router> log, IEnumerable<IHttpMiddleware> middleware
         context.Response.StatusCode = 500;
         context.Response.Body = new MemoryStream(Encoding.UTF8.GetBytes($"unknown method {method}"));
         context.ExtraData.Add(ErrorPageMiddleware.ExtraDataKey, new ErrorPageData { StatusCode = 404, FriendlyMessage = "Not Found", DeveloperMessage = $"unknown method [{method}] for {uri}" });
+    }
+
+    public Router Add(RouteAttribute routeAttribute, RequestHandler handler)
+    {
+        Routes[routeAttribute.Method].Add(ConvertRouteTemplate(routeAttribute.Route), handler);
+        return this;
     }
 
     /// <summary>

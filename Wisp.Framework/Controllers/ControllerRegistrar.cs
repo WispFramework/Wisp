@@ -49,8 +49,11 @@ public class ControllerRegistrar
 
             foreach (var method in controllerType.GetMethods(BindingFlags.Public | BindingFlags.Instance))
             {
-                var routeAttr = method.GetCustomAttribute<RouteAttribute>();
-                if (routeAttr == null) continue;
+                // var routeAttr = method.GetCustomAttribute<RouteAttribute>();
+                // if (routeAttr == null) continue;
+
+                var routeAttrs = method.GetCustomAttributes<RouteAttribute>().ToArray();
+                if(routeAttrs.Length == 0) continue;
 
                 log.LogDebug("Found controller method {Name}", method.Name);
 
@@ -58,7 +61,7 @@ public class ControllerRegistrar
 
                 Router.RequestHandler handler = async context =>
                 {
-                    if (!await AuthenticateAsync(context, authAttr, authenticator, authConfig, routeAttr, log, serviceProvider)) return;
+                    if (!await AuthenticateAsync(context, authAttr, authenticator, authConfig, context.Request.Path, log, serviceProvider)) return;
 
                     var args = BuildControllerArgs(method, serviceProvider, context.Request, log);
                     var result = await InvokeControllerAsync(method, controllerInstance, args);
@@ -78,7 +81,10 @@ public class ControllerRegistrar
                     }
                 };
 
-                router.Add(routeAttr.Method, routeAttr.Route, handler);
+                foreach (var routeAttr in routeAttrs)
+                {
+                    router.Add(routeAttr, handler);    
+                }
             }
         }
     }
@@ -90,20 +96,20 @@ public class ControllerRegistrar
         AuthorizeAttribute? authAttr,
         IAuthenticator? authenticator,
         IAuthConfig? authConfig,
-        RouteAttribute routeAttr,
+        string path,
         ILogger log,
         IServiceProvider sp)
     {
 
         if (authAttr is null)
         {
-            log.LogDebug("Not checking authentication for {Route} because it doesn't have an [Authorize] attribute", routeAttr.Route);
+            log.LogDebug("Not checking authentication for {Route} because it doesn't have an [Authorize] attribute", path);
             return true;
         }
 
         if (authenticator is null)
         {
-            log.LogDebug("Not checking authentication for {Route} because there's no IAuthenticator registered", routeAttr.Route);
+            log.LogDebug("Not checking authentication for {Route} because there's no IAuthenticator registered", path);
             return true;
         }
 

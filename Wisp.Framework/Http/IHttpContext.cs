@@ -5,6 +5,7 @@
 //   * MIT License (https://opensource.org/licenses/MIT)
 // at your option.
 
+using Wisp.Framework.Controllers;
 using Wisp.Framework.Middleware.Sessions;
 
 namespace Wisp.Framework.Http;
