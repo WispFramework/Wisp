@@ -305,10 +305,14 @@ public class ControllerRegistrar
             ?? throw new ArgumentException("the IResultBox<> value is null");
 
         var (serialized, isSimple) = ControllerResultSerializer.Serialize(value);
-
+        
         if (box is IResultBox<Error> errorResult)
         {
             context.Response.StatusCode = errorResult.Value?.Code ?? 500;
+        }
+        else if (box is ResultBoxBase rbb)
+        {
+            context.Response.StatusCode = rbb.StatusCode;
         }
         
         context.Response.ContentType = isSimple ? "text/plain" : "application/json";

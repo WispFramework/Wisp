@@ -5,9 +5,11 @@
 //   * MIT License (https://opensource.org/licenses/MIT)
 // at your option.
 
+using Wisp.Framework.Util;
+
 namespace Wisp.Framework.Controllers;
 
-public class ResultBox<T> : IResultBox<T>
+public class ResultBox<T> : ResultBoxBase, IResultBox<T>
 {
     public ResultBox(T value) => Value = value;
 

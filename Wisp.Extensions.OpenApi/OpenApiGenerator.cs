@@ -7,6 +7,8 @@
 
 using System.Reflection;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi;
@@ -70,7 +72,7 @@ public class OpenApiGenerator(OpenApiConfig config, ILogger<OpenApiGenerator> lo
                 log.LogInformation("scanning method {MethodName}", method.Name);
                 
                 var routeAttr = method.GetCustomAttribute<RouteAttribute>();
-                if(routeAttr is null) continue;
+                if (routeAttr is null) continue;
                 
                 var rawPath = routeAttr.Route;
                 var routeMethod = routeAttr.Method;
@@ -93,6 +95,57 @@ public class OpenApiGenerator(OpenApiConfig config, ILogger<OpenApiGenerator> lo
                     });
                 }
 
+                var methodParams = method.GetParameters();
+
+                OpenApiRequestBody? requestBody = null;
+                
+                foreach (var param in methodParams)
+                {
+                    var fromBodyAttr = param.GetCustomAttribute<FromBodyAttribute>();
+                    if (fromBodyAttr is not null)
+                    {
+                        var bodyType = param.ParameterType;
+                        string? example = null;
+                        
+                        try
+                        {
+                            var instance = Activator.CreateInstance(bodyType);
+                            if (instance is not null) example = JsonSerializer.Serialize(instance);
+                        }
+                        catch (Exception ex)
+                        {
+                            log.LogError(ex, "could not create an example for type");
+                        }
+
+                        var schema = GenerateSchema(bodyType);
+                        requestBody = new OpenApiRequestBody
+                        {
+                            Required = true,
+                            Content = new Dictionary<string, IOpenApiMediaType>
+                            {
+                                ["application/json"] = new OpenApiMediaType
+                                {
+                                    Schema = schema,
+                                    Example = example
+                                }
+                            }
+                        };
+                        
+                        continue;
+                    }
+
+                    if (!pathParameters.Any(p => p.Name == param.Name))
+                    {
+                        pathParameters.Add(new OpenApiParameter
+                        {
+                            Name = param.Name,
+                            In = ParameterLocation.Query,
+                            Required = true,
+                            Schema = new OpenApiSchema { Type = JsonSchemaType.String }
+                        });
+                    }
+                }
+
                 var normalizedPath = Regex.Replace(rawPath, @"\{([^\}:]+)(:[^\}]+)?\}", @"{$1}");
 
                 if (!doc.Paths.TryGetValue(normalizedPath, out var pathItem))
@@ -104,15 +157,28 @@ public class OpenApiGenerator(OpenApiConfig config, ILogger<OpenApiGenerator> lo
                     doc.Paths.Add(normalizedPath, pathItem);
                 }
 
+                var innerReturnType = UnwrapInnermostGeneric(method.ReturnType);
+
                 pathItem.Operations[_opMap[routeMethod]] = new OpenApiOperation
                 {
                     Summary = summary ?? "",
                     Parameters = pathParameters,
                     Responses = new OpenApiResponses
                     {
-                        ["200"] = new OpenApiResponse{ Description = "OK" }
+                        ["200"] = new OpenApiResponse
+                        {
+                            Description = "OK",
+                            Content = new Dictionary<string, IOpenApiMediaType>
+                            {
+                                ["application/json"] = new OpenApiMediaType
+                                {
+                                    Schema = GenerateSchema(innerReturnType)
+                                }
+                            }
+                        }
                     },
-                    Tags = new HashSet<OpenApiTagReference>() { new OpenApiTagReference(controller.Name) }
+                    Tags = new HashSet<OpenApiTagReference>() { new OpenApiTagReference(controller.Name) },
+                    RequestBody = requestBody
                 };
             }
         }
@@ -124,6 +190,67 @@ public class OpenApiGenerator(OpenApiConfig config, ILogger<OpenApiGenerator> lo
         return sb.ToString();
     }
 
+    private static readonly HashSet<Type> KnownWrappers = new()
+    {
+        typeof(Task<>),
+        typeof(ValueTask<>),
+        typeof(ResultBox<>)
+    };
+
+    private static Type UnwrapInnermostGeneric(Type type)
+    {
+        while (true)
+        {
+            if (!type.IsGenericType) return type;
+            var genericDef = type.GetGenericTypeDefinition();
+
+            if (!KnownWrappers.Contains(genericDef))
+                return type;
+
+            type = type.GetGenericArguments()[0];
+        }
+    }
+
+    private static OpenApiSchema GenerateSchema(Type type)
+    {
+        if (type == typeof(string))
+            return new OpenApiSchema { Type = JsonSchemaType.String };
+        
+        if (type == typeof(int) || type == typeof(long))
+            return new OpenApiSchema { Type = JsonSchemaType.Integer };
+
+        if (type == typeof(bool))
+            return new OpenApiSchema { Type = JsonSchemaType.Boolean };
+
+        if (type == typeof(float) || type == typeof(double) || type == typeof(decimal))
+            return new OpenApiSchema { Type = JsonSchemaType.Number };
+
+        if (type == typeof(Guid)) return new OpenApiSchema { Type = JsonSchemaType.String };
+
+        if (type.IsEnum) return new OpenApiSchema { Type = JsonSchemaType.String };
+        
+        if (type.IsArray)
+        {
+            return new OpenApiSchema
+            {
+                Type = JsonSchemaType.Array,
+                Items = GenerateSchema(type.GetElementType()!)
+            };
+        }
+
+        var props = new Dictionary<string, IOpenApiSchema>();
+        foreach (var prop in type.GetProperties(BindingFlags.Public | BindingFlags.Instance))
+        {
+            props[prop.Name] = GenerateSchema(prop.PropertyType);
+        }
+
+        return new OpenApiSchema
+        {
+            Type = JsonSchemaType.Object,
+            Properties = props
+        };
+    }
+    
     private readonly Dictionary<string, HttpMethod> _opMap = new()
     {
         ["GET"] = HttpMethod.Get,
