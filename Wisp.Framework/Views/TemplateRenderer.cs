@@ -32,7 +32,7 @@ public class TemplateRenderer
     };
 
     private readonly FluidViewRenderer _renderer;
-
+    
     public TemplateRenderer(IServiceProvider serviceProvider, IMiddlewareDataInjector dataInjector)
     {
         _authenticator = serviceProvider.GetService<IAuthenticator?>();
@@ -42,6 +42,7 @@ public class TemplateRenderer
         _viewOptions.TemplateOptions.MemberAccessStrategy = UnsafeMemberAccessStrategy.Instance;
         _viewOptions.TemplateOptions.MemberAccessStrategy.MemberNameStrategy = MemberNameStrategies.RenameSnakeCase;
         _viewOptions.TemplateOptions.FileProvider = new PhysicalFileProvider(Path.Combine(Directory.GetCurrentDirectory(), "Templates"));
+        _viewOptions.TemplateOptions.Filters.AddFilter("agoDate", FluidExtensions.DateToAgo);
         _viewOptions.Parser = new FluidViewParser(new FluidParserOptions { AllowFunctions = true, AllowParentheses = true});
         _renderer = new(_viewOptions);
     }
