@@ -38,7 +38,10 @@ public class ControllerRegistrar
         var authConfig = serviceProvider.GetService<IAuthConfig>();
 
         var controllers = assembly?.GetTypes()
-            .Where(t => t.GetCustomAttribute<ControllerAttribute>() != null) ?? throw new InvalidOperationException("this should not happen");
+            .Where(t => t.GetCustomAttribute<ControllerAttribute>(inherit: false) != null)
+            .ToList();
+
+        if (controllers is null) throw new Exception("no controllers found");
 
         log.LogDebug("Looking for controllers");
         
@@ -46,6 +49,7 @@ public class ControllerRegistrar
         {
             log.LogDebug("Found controller type {Name}", controllerType.FullName);
             var controllerInstance = ActivatorUtilities.CreateInstance(serviceProvider, controllerType);
+            var controllerAttr = controllerType.GetCustomAttribute<ControllerAttribute>(inherit: false);
 
             foreach (var method in controllerType.GetMethods(BindingFlags.Public | BindingFlags.Instance))
             {
@@ -83,7 +87,8 @@ public class ControllerRegistrar
 
                 foreach (var routeAttr in routeAttrs)
                 {
-                    router.Add(routeAttr, handler);    
+                    log.LogDebug("Registering route {Path} with priority {Prio}", routeAttr.Route, controllerAttr?.Priority ?? 0);
+                    router.Add(routeAttr, handler, controllerAttr?.Priority ?? 0);    
                 }
             }
         }

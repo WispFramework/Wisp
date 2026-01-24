@@ -20,6 +20,46 @@ public class HelloController {}
 public class HelloApiController {}
 ```
 
+### Priority
+
+Normally, controller priority is determined on a last-in-first-out basis. That means that from two controllers
+that contain the same route, the one added last will actually get to handle the request. Since the order of automatically
+discovered controllers is not guaranteed, this can cause issues if you have conflicting routes like `/{a}/{b}` and `/about/info`,
+if the controller handling `/about/info` is added first, the controller for `/{a}/{b}` will eat the route because it takes
+priority.
+
+You can explicitly specify a priority for a controller by setting the `priority` argument of `[Controller]`. Controllers
+with a higher priority will be registered last and therefore take precedence. The default priority is `0`, which means
+controllers without an explicitly set priority will compete for routes as usual. (In practice, this happens in alphabetical
+order, but this is not guaranteed)
+
+```csharp
+[Controller]
+public class GenericController 
+{
+    [Route("/{a}/{b}")]
+    public ViewResult GetSomething(string a, string b) => View("");
+}
+
+[Controller(priority: 1_000)]
+public class SpecificController
+{
+    [Route("/hello/world")]
+    public ViewResult GetSomething() => View("");
+}
+```
+
+In the example above, the handler for `/{a}/{b}` will not consume `/hello/world`, because the priority of `SpecificController`
+is higher. Routes matching `/{a}/{b}` but not `/hello/world` will still be correctly consumed by `GenericController`.
+
+!!! info
+    **Pro Tip:** You can also make the priority negative to make sure a controller gets lower priority than others. 
+
+    This is useful when you have many specific controllers and one generic controller that conflicts with them. This way,
+    you only need to set the priority once.
+
+    For example: `[Controller(priority: -1_000)]`
+
 ## Routing
 
 Both the controller itself, and the methods within can have a `[Route]` attribute. The final route of a controller action
