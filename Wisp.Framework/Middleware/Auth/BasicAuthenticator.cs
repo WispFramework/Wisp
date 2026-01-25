@@ -22,7 +22,7 @@ public class BasicAuthenticator(ISessionAccessor sessionAccessor, ILogger<BasicA
         
         var rolesHash = new HashSet<string>(roles, StringComparer.OrdinalIgnoreCase);
 
-        if (roles.Count == 0 || !principal.Roles.Any(r => rolesHash.Contains(r)))
+        if (roles.Count != 0 || !principal.Roles.Any(r => rolesHash.Contains(r)))
         {
             log.LogDebug("authentication failed: role mismatch");
             log.LogDebug("user has roles: {Roles}", string.Join(", ", principal.Roles));
