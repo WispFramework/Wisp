@@ -51,18 +51,18 @@ jobs:
             --skip-duplicate
 
       - name: Push NuGet Symbols
-          run: |
-            dotnet nuget push "./artifacts/*.snupkg" \
-              --api-key ${{ secrets.NUGET_API_KEY }} \
-              --source https://api.nuget.org/v3/index.json \
-              --skip-duplicate
+        run: |
+          dotnet nuget push "./artifacts/*.snupkg" \
+            --api-key ${{ secrets.NUGET_API_KEY }} \
+            --source https://api.nuget.org/v3/index.json \
+            --skip-duplicate
 
       - name: Create GitHub Release
-          uses: softprops/action-gh-release@v2
-          with:
-            tag_name: ${{ github.ref_name }}
-            name: ${{ github.ref_name }}
-            files: |
-              artifacts/*.nupkg
-              artifacts/*.snupkg
-            generate_release_notes: true
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          files: |
+            artifacts/*.nupkg
+            artifacts/*.snupkg
+          generate_release_notes: true
