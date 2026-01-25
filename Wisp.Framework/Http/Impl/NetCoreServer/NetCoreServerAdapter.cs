@@ -28,12 +28,12 @@ namespace Wisp.Framework.Http.Impl.NetCoreServer;
 /// <param name="router"></param>
 /// <param name="log"></param>
 /// <param name="middlewares"></param>
-public class NetCoreServerAdapter(IOptions<WispConfiguration> config, Router router, ILogger<NetCoreServerAdapter> log, IEnumerable<IHttpMiddleware> middlewares, IHttpContextAccessor contextAccessor)
+public class NetCoreServerAdapter(IOptions<WispConfiguration> config, Router router, ILogger<NetCoreServerAdapter> log, IEnumerable<IHttpMiddleware> middlewares, IHttpContextAccessor contextAccessor, IServiceProvider serviceProvider)
     : HttpServer(IPAddress.Parse(config.Value.Host), config.Value.Port), IHttpServer
 {
     protected override TcpSession CreateSession()
     {
-        return new AdapterSession(this, router, log, middlewares, contextAccessor);
+        return new AdapterSession(this, router, log, middlewares, contextAccessor, serviceProvider);
     }
 
     public Task StartAsync(CancellationToken? cancel = default)
@@ -54,14 +54,16 @@ public class NetCoreServerAdapter(IOptions<WispConfiguration> config, Router rou
 
         private readonly ILogger<NetCoreServerAdapter> _log;
         private readonly IHttpContextAccessor _contextAccessor;
+        private readonly IServiceProvider _serviceProvider;
 
         private readonly List<IHttpMiddleware> _middlewares;
 
-        public AdapterSession(NetCoreServerAdapter server, Router router, ILogger<NetCoreServerAdapter> log, IEnumerable<IHttpMiddleware> middlewares, IHttpContextAccessor contextAccessor) : base(server)
+        public AdapterSession(NetCoreServerAdapter server, Router router, ILogger<NetCoreServerAdapter> log, IEnumerable<IHttpMiddleware> middlewares, IHttpContextAccessor contextAccessor, IServiceProvider serviceProvider) : base(server)
         {
             _router = router;
             _log = log;
             _contextAccessor = contextAccessor;
+            _serviceProvider = serviceProvider;
             _middlewares = middlewares.ToList();            
         }
         
@@ -70,7 +72,7 @@ public class NetCoreServerAdapter(IOptions<WispConfiguration> config, Router rou
             try
             {
                 _log.LogError("Request Boundary -------------------------------------------------------");
-                var context = new AdapterContext(request, this);
+                var context = new AdapterContext(request, this) { Services = _serviceProvider };
                 
                 var protoHeader = context.Request.Headers.GetOrDefaultIgnoreCaseReadonly("x-forwarded-proto");
                 if (protoHeader is not null && protoHeader.Equals("https", StringComparison.InvariantCultureIgnoreCase))

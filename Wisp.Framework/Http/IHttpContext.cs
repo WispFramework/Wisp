@@ -47,4 +47,6 @@ public interface IHttpContext
     /// Additional data that can be used by, for example, middleware
     /// </summary>
     Dictionary<string, object?> ExtraData { get; set; }
+    
+    IServiceProvider Services { get; set; }
 }

@@ -37,4 +37,6 @@ public class AdapterContext : IHttpContext
     public bool IsHandled { get; set; }
     
     public Dictionary<string, object?> ExtraData {get;set;} = new();
+
+    public IServiceProvider Services { get; set; }
 }

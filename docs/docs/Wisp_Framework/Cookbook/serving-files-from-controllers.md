@@ -39,3 +39,14 @@ public async Task ServeFile(string fileName, IHttpContextAccessor contextAccesso
     response.Body = new MemoryStream(file);
 }
 ```
+
+!!! info
+    **Pro Tip:** If you're serving files from a URL that doesn't look like a file (for example, serving `document.pdf` from
+    `/files/generate-doc`), set the `Content-Disposition` header to hint the file name and extension to the browser.
+    
+    ```csharp
+    response.Headers.Add("Content-Disposition", "attachment; filename=\"document.pdf\"");
+    ```
+
+    For more information about the `Content-Disposition` header, see 
+    [the MDN doc](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Disposition).

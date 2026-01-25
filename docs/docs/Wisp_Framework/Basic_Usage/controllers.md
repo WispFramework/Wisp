@@ -3,8 +3,8 @@ icon: lucide/monitor-cog
 ---
 # Controllers
 
-In Wisp, Controllers are classes that hold methods that are route handlers. A controller is a public,
-non-static class that is marked with `[Controller]` or `[ApiController]` and optionally extends `ControllerBase`.
+Controllers in Wisp are classes that handle incoming HTTP requests and return responses in the form of views, JSON, or other data.  
+They are inspired by the familiar ASP.NET MVC model.
 
 ## Controller Type Attribute
 
@@ -82,7 +82,7 @@ The final path to the `GetHello` controller action will be `/api/v1/hello-world`
 
 ## Extending `ControllerBase`
 
-Is is highly recommended, though not required, to extend the `ControllerBase` class. This will include some convenience methods
+It is highly recommended, though not required, to extend the `ControllerBase` class. This will include some convenience methods
 into your controller.
 
 Here is a non-exhaustive overview of available method.

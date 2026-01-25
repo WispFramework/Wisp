@@ -1,7 +1,4 @@
----
-title: "About Wisp OpenAPI"
----
-# Wisp.Extensions.OpenAPI
+# About
 
 !!! warning
     This extension is in an early alpha version and some of the features mentioned in this documentation

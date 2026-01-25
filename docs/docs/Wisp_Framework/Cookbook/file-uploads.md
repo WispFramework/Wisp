@@ -5,7 +5,7 @@ icon: lucide/upload
 # File Uploads
 
 !!! warning
-    Your form needs to include `enctype="multipart/form-data"` for file uploads to work correctly.
+    Your HTML form needs to include `enctype="multipart/form-data"` for file uploads to work correctly.
 
     ```html
     <form action="/upload" method="post" enctype="multipart/form-data">...</form>
