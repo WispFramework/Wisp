@@ -115,6 +115,26 @@ public class Router(ILogger<Router> log, IEnumerable<IHttpMiddleware> middleware
         context.ExtraData.Add(ErrorPageMiddleware.ExtraDataKey, new ErrorPageData { StatusCode = 404, FriendlyMessage = "Not Found", DeveloperMessage = $"unknown method [{method}] for {uri}" });
     }
 
+    /// <summary>
+    /// Clears the entire routing table.
+    /// </summary>
+    /// <remarks>This method mainly exists for internal use and should almost never be called from application code.</remarks>
+    /// <returns></returns>
+    internal Router Clear()
+    {
+        _routes.Clear();
+        _routes["GET"] = new();
+        _routes["POST"] = new();
+        _routes["PUT"] = new();
+        _routes["PATCH"] = new();
+        _routes["DELETE"] = new();
+        _routes["OPTIONS"] = new();
+        _routes["HEAD"] = new();
+        _routes["QUERY"] = new();
+
+        return this;
+    }
+
     public Router Add(RouteAttribute routeAttribute, RequestHandler handler, int priority = 0)
     {
         // _routes[routeAttribute.Method].Add(ConvertRouteTemplate(routeAttribute.Route), handler);

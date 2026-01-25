@@ -31,10 +31,13 @@ public class ControllerRegistrar
         ILogger<ControllerRegistrar> log,
         TemplateRenderer renderer,
         IAuthenticator? authenticator = null,
-        Assembly? assembly = null)
+        Assembly? assembly = null,
+        bool clearPrevious = false)
     {
         assembly ??= Assembly.GetEntryAssembly();
 
+        if(clearPrevious) router.Clear();
+        
         var authConfig = serviceProvider.GetService<IAuthConfig>();
 
         var controllers = assembly?.GetTypes()

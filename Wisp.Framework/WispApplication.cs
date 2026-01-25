@@ -7,9 +7,13 @@
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Wisp.Framework.Configuration;
+using Wisp.Framework.Controllers;
 using Wisp.Framework.Hosting;
 using Wisp.Framework.Http;
+using Wisp.Framework.Middleware.Auth;
+using Wisp.Framework.Views;
 
 namespace Wisp.Framework;
 
@@ -40,6 +44,29 @@ public class WispApplication
         _bsm = serviceProvider.GetService<BackgroundServiceManager>();
 
         _log = _serviceProvider.GetRequiredService<ILogger<WispApplication>>();
+
+        var featureFlags = _serviceProvider.GetRequiredService<IOptions<FeatureFlags>>().Value;
+        
+        HotReloadHandler.UpdateApplicationEvent += types =>
+        {
+            _log.LogDebug("Hot-Reload detected");
+
+            if (featureFlags.EnableControllerHotReload)
+            {
+                _log.LogDebug("Trying to re-register controllers...");
+                ReRegisterControllers();
+                _log.LogDebug("Hot-Reload completed");    
+            }
+        };
+    }
+
+    private void ReRegisterControllers()
+    {
+        var log = _serviceProvider.GetRequiredService<ILogger<ControllerRegistrar>>();
+        var renderer = _serviceProvider.GetRequiredService<TemplateRenderer>();
+        var auth = _serviceProvider.GetService<IAuthenticator>();
+        var router = _serviceProvider.GetRequiredService<Router>();
+        ControllerRegistrar.RegisterControllers(router, _serviceProvider, log, renderer, authenticator: auth, clearPrevious: true);
     }
 
     /// <summary>

@@ -158,3 +158,37 @@ public class HomeController {
       => new ViewResult(new RedirectView("/"));
 }
 ```
+
+## Hot-Reload
+
+When running with `dotnet watch`, Wisp will try to detect hot reloads and re-run controller registration.
+
+**This feature is experimental, but enabled by default.** You can disable it by setting `EnableControllerHotReload` in
+the `FeatureFlags` config section to `false`.
+
+```json
+"FeatureFlags": {
+  "EnableControllerHotReload": true
+}
+```
+
+### Supported Edits
+
+Since this functionality completely re-runs the controller discovery, the behavior should be almost the same as restarting
+the application, with some caveats.
+
+The followind edits should generally be expected to work correctly:
+
+ - Controller Action Method Added
+ - Controller Action Method Changed
+ - Controller Action Method Removed
+ - Route Attribute Added
+ - Route Attribute Changed
+ - Route Attribute Removed
+ - Controller Class Added
+ - Controller Class Changed
+ - Controller Class Removed
+ - Controller Class Constructor Changed
+
+**What will not work are any changes to the DI container (adding/removing services), configuration or middleware. See
+[Wisp Architecture](../advanced/architecture#hot-reload) for more details.**

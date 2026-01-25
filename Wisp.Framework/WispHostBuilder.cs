@@ -215,7 +215,10 @@ public class WispHostBuilder
         });
 
         _serviceCollection.AddSingleton<IConfiguration>(config);
+        
         _serviceCollection.Configure<WispConfiguration>(config.GetSection("Wisp"));
+        _serviceCollection.Configure<FeatureFlags>(config.GetSection("FeatureFlags"));
+        
         _serviceCollection.AddSingleton<Router>();
         _serviceCollection.AddSingleton<IHttpServer, NetCoreServerAdapter>();
         _serviceCollection.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
