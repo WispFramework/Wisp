@@ -47,6 +47,7 @@ public class WispApplication
 
         var featureFlags = _serviceProvider.GetRequiredService<IOptions<FeatureFlags>>().Value;
         
+        #if DEBUG
         HotReloadHandler.UpdateApplicationEvent += types =>
         {
             _log.LogDebug("Hot-Reload detected");
@@ -58,6 +59,7 @@ public class WispApplication
                 _log.LogDebug("Hot-Reload completed");    
             }
         };
+        #endif
     }
 
     private void ReRegisterControllers()

@@ -3,6 +3,8 @@ name: Build & Deploy Docs
 on:
   push:
     branches: [ "nightly" ]
+    paths:
+      - "docs/**"
   workflow_dispatch:
 
 permissions:
