@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Fluid;
 using Fluid.Values;
 
@@ -5,6 +6,13 @@ namespace Wisp.Framework.Views;
 
 public static class FluidExtensions
 {
+    public static ValueTask<FluidValue> ToJson(FluidValue input, FilterArguments args, TemplateContext context)
+    {
+        var obj = input.ToObjectValue();
+        var json = JsonSerializer.Serialize(obj, new JsonSerializerOptions {  WriteIndented = true });
+        return new StringValue(json);
+    }
+    
     public static ValueTask<FluidValue> DateToAgo(FluidValue input, FilterArguments args, TemplateContext context)
     {
         if (string.IsNullOrEmpty(input.ToStringValue())) return new StringValue("");
