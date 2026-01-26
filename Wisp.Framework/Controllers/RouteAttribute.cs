@@ -12,6 +12,7 @@ namespace Wisp.Framework.Controllers;
 /// </summary>
 /// <param name="route"></param>
 /// <param name="method"></param>
+[AttributeUsage(AttributeTargets.Method, AllowMultiple = true)]
 public class RouteAttribute(string route, string method = "GET") : Attribute
 {
     public string Route { get; init; } = route;

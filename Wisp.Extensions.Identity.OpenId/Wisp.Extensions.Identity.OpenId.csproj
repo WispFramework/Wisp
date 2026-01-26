@@ -1,0 +1,45 @@
+﻿<!--
+This file is part of Wisp Framework.
+
+Licensed under either of
+  * Apache License, Version 2.0 (https://www.apache.org/licenses/LICENSE-2.0)
+  * MIT License (https://opensource.org/licenses/MIT)
+at your option.
+-->
+
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageLicenseExpression>MIT OR Apache-2.0</PackageLicenseExpression>
+
+    <Version>10.0.0</Version>
+
+    <PackageId>Wisp.Extensions.Identity.OpenId</PackageId>    
+    <Authors>Jakub Sycha (utf-8x)</Authors>
+    <Company>Wisp</Company>
+    <Description>An OpenID auth provider for the Wisp Framework</Description>
+    <PackageProjectUrl>https://github.com/utf-8x/wisp</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/utf-8x/wisp.git</RepositoryUrl>
+    <RespositoryType>git</RespositoryType>
+    <PackageTags>web;framework;lightweight</PackageTags>    
+
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Wisp.Framework/Wisp.Framework.csproj" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.15.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\"/>
+  </ItemGroup>
+</Project>

@@ -9,6 +9,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Wisp.Framework.Configuration;
 using Wisp.Framework.Http;
+using File = System.IO.File;
 
 namespace Wisp.Framework.Middleware;
 

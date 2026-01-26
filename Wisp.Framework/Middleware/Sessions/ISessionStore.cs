@@ -12,24 +12,31 @@ namespace Wisp.Framework.Middleware.Sessions;
 /// </summary>
 public interface ISessionStore
 {
+
     /// <summary>
-    /// Get a session object by ID
+    /// Get data for a session
     /// </summary>
     /// <param name="sessionId"></param>
+    /// <param name="key"></param>
+    /// <typeparam name="T"></typeparam>
     /// <returns></returns>
-    Task<ISession?> GetAsync(string sessionId);
+    Task<T?> GetAsync<T>(string sessionId, string key);
     
     /// <summary>
-    /// Create a new session object
-    /// </summary>
-    /// <returns></returns>
-    Task<ISession> CreateAsync();
-    
-    /// <summary>
-    /// Store a session object by ID
+    /// Set data for a session
     /// </summary>
     /// <param name="sessionId"></param>
-    /// <param name="session"></param>
+    /// <param name="key"></param>
+    /// <param name="value"></param>
+    /// <typeparam name="T"></typeparam>
     /// <returns></returns>
-    Task StoreAsync(string sessionId, ISession session);
+    Task SetAsync<T>(string sessionId, string key, T value);
+    
+    /// <summary>
+    /// Clear data for a session
+    /// </summary>
+    /// <param name="sessionId"></param>
+    /// <param name="key"></param>
+    /// <returns></returns>
+    Task ClearAsync(string sessionId, string key);
 }

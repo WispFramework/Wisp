@@ -5,6 +5,7 @@
 //   * MIT License (https://opensource.org/licenses/MIT)
 // at your option.
 
+using Wisp.Framework.Controllers;
 using Wisp.Framework.Middleware.Sessions;
 
 namespace Wisp.Framework.Http;
@@ -21,17 +22,31 @@ public interface IHttpContext
     IHttpRequest Request { get; }
 
     /// <summary>
+    /// This this request HTTPS (or HTTP)?
+    /// </summary>
+    bool IsHttps { get; set; }
+    
+    string HostName { get; set; }
+
+    /// <summary>
     /// The response object
     /// </summary>
     IHttpResponse Response { get; }
-    
+
     /// <summary>
     /// An optional session object
     /// </summary>
-    ISession? Session { get; set; }
+    // ISession? Session { get; set; }
 
     /// <summary>
     /// If a context is handled, it shouldn't be processed any further and the response should be sent
     /// </summary>
     bool IsHandled { get; set; }
+    
+    /// <summary>
+    /// Additional data that can be used by, for example, middleware
+    /// </summary>
+    Dictionary<string, object?> ExtraData { get; set; }
+    
+    IServiceProvider Services { get; set; }
 }

@@ -5,6 +5,7 @@
 //   * MIT License (https://opensource.org/licenses/MIT)
 // at your option.
 
+using Wisp.Framework.Util;
 using Wisp.Framework.Views;
 
 namespace Wisp.Framework.Controllers;
@@ -19,4 +20,23 @@ public abstract class ControllerBase
 
     protected internal ViewResult Redirect(string url)
         => new ViewResult(new TemplateView(url));
+
+    protected internal IResultBox<T> Box<T>(T item) => new ResultBox<T>(item);
+    
+    protected internal ResultBox FromError(Error error) => new ResultBox(error);
+    
+    protected internal ResultBox ServerError(string message, string? description = null, Exception? exception = null)
+        => new ResultBox(new Error(500, message, description, exception));
+
+    protected internal ResultBox NotFound(string message, string? description = null, Exception? exception = null)
+        => new ResultBox(new Error(404, message, description, exception));
+
+    protected internal ResultBox<T> BadRequest<T>(T content) => new ResultBox<T>(content) { StatusCode = HttpStatusCode.BadRequest };
+    
+    protected internal ResultBox BadRequest(object content) => new ResultBox(content) { StatusCode = HttpStatusCode.BadRequest };
+    
+    protected internal ResultBox<T> Ok<T>(T content) => new ResultBox<T>(content);
+
+    protected internal ResultBox Ok(object content) => new ResultBox(content);
+
 }

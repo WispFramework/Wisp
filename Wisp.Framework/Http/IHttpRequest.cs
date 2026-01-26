@@ -5,6 +5,7 @@
 //   * MIT License (https://opensource.org/licenses/MIT)
 // at your option.
 
+using System.Net;
 using System.Text.Json.Serialization;
 
 namespace Wisp.Framework.Http;
@@ -50,12 +51,22 @@ public interface IHttpRequest
     Dictionary<string, string> PathVars { get; set; }
     
     Dictionary<string, string> FormData { get; set; }
+    
+    /// <summary>
+    /// multipart/form-data files
+    /// </summary>
+    List<File> Files { get; set; }
+
+    [JsonIgnore]
+    IPEndPoint ClientEndpoint { get; set; }
+    
+    string ContentType { get; set; }
 
     /// <summary>
     /// The request body
     /// </summary>
     [JsonIgnore]
-    Stream Body { get; }
+    Stream Body { get; set; }
 
     /// <summary>
     /// Read the body stream into a string

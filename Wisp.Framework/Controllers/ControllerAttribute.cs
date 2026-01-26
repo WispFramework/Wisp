@@ -10,7 +10,7 @@ namespace Wisp.Framework.Controllers;
 /// <summary>
 /// Marks a controller for auto-discovery
 /// </summary>
-public class ControllerAttribute : Attribute
+public class ControllerAttribute(int priority = 0) : Attribute
 {
-    
+    public int Priority => priority;
 }

@@ -16,7 +16,7 @@ public interface IHttpServer
     /// Start the server
     /// </summary>
     /// <returns></returns>
-    Task StartAsync();
+    Task StartAsync(CancellationToken? cancel = default);
     
     /// <summary>
     /// Stop the server

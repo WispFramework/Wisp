@@ -1,6 +1,15 @@
+// This file is part of Wisp Framework.
+// 
+// Licensed under either of
+//   * Apache License, Version 2.0 (https://www.apache.org/licenses/LICENSE-2.0)
+//   * MIT License (https://opensource.org/licenses/MIT)
+// at your option.
+
+using Wisp.Framework.Util;
+
 namespace Wisp.Framework.Controllers;
 
-public class ResultBox<T> : IResultBox<T>
+public class ResultBox<T> : ResultBoxBase, IResultBox<T>
 {
     public ResultBox(T value) => Value = value;
 
@@ -10,3 +19,5 @@ public class ResultBox<T> : IResultBox<T>
 
     public Type ValueType => typeof(T);
 }
+
+public class ResultBox(object value) : ResultBox<object>(value) {}

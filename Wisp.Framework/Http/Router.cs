@@ -9,29 +9,53 @@ using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
+using Wisp.Framework.Controllers;
+using Wisp.Framework.Middleware;
+using Wisp.Framework.Middleware.ErrorPages;
 
 namespace Wisp.Framework.Http;
 
 /// <summary>
 /// This is the Wisp HTTP Router
 /// </summary>
-public class Router(ILogger<Router> log)
+public class Router(ILogger<Router> log, IEnumerable<IHttpMiddleware> middlewares)
 {
     /// <summary>
     /// This is what a request handler method should conform to
     /// </summary>
     public delegate Task RequestHandler(IHttpContext request);
 
-    private readonly Dictionary<string, Dictionary<Regex, RequestHandler>> Routes = new()
+    private List<IHttpMiddleware> _middlewares = middlewares.ToList();
+
+    private class RouteEntry
     {
-        {"GET", new Dictionary<Regex, RequestHandler>()},
-        {"POST", new Dictionary<Regex, RequestHandler>()},
-        {"PUT", new Dictionary<Regex, RequestHandler>()},
-        {"PATCH", new Dictionary<Regex, RequestHandler>()},
-        {"DELETE", new Dictionary<Regex, RequestHandler>()},
-        {"OPTIONS", new Dictionary<Regex, RequestHandler>()},
-        {"HEAD", new Dictionary<Regex, RequestHandler>()},
-        {"QUERY", new Dictionary<Regex, RequestHandler>()}
+        public Regex Pattern { get; set; }
+        public RequestHandler Handler { get; set; }
+        public int Priority { get; set; }
+    }
+    
+    // private readonly Dictionary<string, Dictionary<Regex, RequestHandler>> Routes = new()
+    // {
+    //     {"GET", new Dictionary<Regex, RequestHandler>()},
+    //     {"POST", new Dictionary<Regex, RequestHandler>()},
+    //     {"PUT", new Dictionary<Regex, RequestHandler>()},
+    //     {"PATCH", new Dictionary<Regex, RequestHandler>()},
+    //     {"DELETE", new Dictionary<Regex, RequestHandler>()},
+    //     {"OPTIONS", new Dictionary<Regex, RequestHandler>()},
+    //     {"HEAD", new Dictionary<Regex, RequestHandler>()},
+    //     {"QUERY", new Dictionary<Regex, RequestHandler>()}
+    // };
+    
+    private readonly Dictionary<string, List<RouteEntry>> _routes = new()
+    {
+        {"GET", new List<RouteEntry>()},
+        {"POST", new List<RouteEntry>()},
+        {"PUT", new List<RouteEntry>()},
+        {"PATCH", new List<RouteEntry>()},
+        {"DELETE", new List<RouteEntry>()},
+        {"OPTIONS", new List<RouteEntry>()},
+        {"HEAD", new List<RouteEntry>()},
+        {"QUERY", new List<RouteEntry>()}
     };
 
     /// <summary>
@@ -48,32 +72,39 @@ public class Router(ILogger<Router> log)
         if (string.IsNullOrWhiteSpace(method)) throw new Exception("the HTTP context does not contain a method");
 
         log.LogDebug("Trying to handle {Method} route for {Uri}", method, uri);
-        
-        if (Routes.TryGetValue(method, out var routes))
+
+        if (_routes.TryGetValue(method, out var routes))
         {
-            foreach (var route in routes)
+            foreach (var route in routes.OrderByDescending(r => r.Priority))
             {
-                var match = route.Key.Match(uri.Split('?')[0]);
+                var match = route.Pattern.Match(uri.TrimEnd('/').Split('?')[0]);
                 if (match.Success)
                 {
                     var routeParams = new Dictionary<string, string>();
-                    foreach (var groupName in route.Key.GetGroupNames())
+                    foreach (var groupName in route.Pattern.GetGroupNames())
                     {
-                        if(groupName != "0" && match.Groups[groupName].Success)
+                        if (groupName != "0" && match.Groups[groupName].Success)
                             routeParams[groupName] = match.Groups[groupName].Value;
                     }
-                    
+
                     context.Request.PathVars = routeParams;
-                    
+
                     log.LogDebug("Found [{Method}] {Route}", method, uri);
-                    await route.Value.Invoke(context);
+
+                    foreach (var m in _middlewares.OrderBy(m => m.Priority.Value))
+                    {
+                        await m.OnRequestRouted(context);
+                    }
+
+                    await route.Handler.Invoke(context);
                     return;
                 }
             }
-            
+
             log.LogWarning("[{Method}] 404 Not Found - {Route}", method, uri);
             context.Response.StatusCode = 404;
             context.Response.Body = new MemoryStream("Not Found"u8.ToArray());
+            context.ExtraData.Add(ErrorPageMiddleware.ExtraDataKey, new ErrorPageData { StatusCode = 404, FriendlyMessage = "Not Found", DeveloperMessage = $"no route found for [{method}] {uri}" });
             return;
         }
 
@@ -81,6 +112,39 @@ public class Router(ILogger<Router> log)
 
         context.Response.StatusCode = 500;
         context.Response.Body = new MemoryStream(Encoding.UTF8.GetBytes($"unknown method {method}"));
+        context.ExtraData.Add(ErrorPageMiddleware.ExtraDataKey, new ErrorPageData { StatusCode = 404, FriendlyMessage = "Not Found", DeveloperMessage = $"unknown method [{method}] for {uri}" });
+    }
+
+    /// <summary>
+    /// Clears the entire routing table.
+    /// </summary>
+    /// <remarks>This method mainly exists for internal use and should almost never be called from application code.</remarks>
+    /// <returns></returns>
+    internal Router Clear()
+    {
+        _routes.Clear();
+        _routes["GET"] = new();
+        _routes["POST"] = new();
+        _routes["PUT"] = new();
+        _routes["PATCH"] = new();
+        _routes["DELETE"] = new();
+        _routes["OPTIONS"] = new();
+        _routes["HEAD"] = new();
+        _routes["QUERY"] = new();
+
+        return this;
+    }
+
+    public Router Add(RouteAttribute routeAttribute, RequestHandler handler, int priority = 0)
+    {
+        // _routes[routeAttribute.Method].Add(ConvertRouteTemplate(routeAttribute.Route), handler);
+        _routes[routeAttribute.Method].Add(new RouteEntry
+        {
+            Pattern = ConvertRouteTemplate(routeAttribute.Route),
+            Handler = handler,
+            Priority = priority
+        });
+        return this;
     }
 
     /// <summary>
@@ -90,9 +154,15 @@ public class Router(ILogger<Router> log)
     /// <param name="route"></param>
     /// <param name="handler"></param>
     /// <returns></returns>
-    public Router Add(string method, string route, RequestHandler handler)
+    public Router Add(string method, string route, RequestHandler handler, int priority = 0)
     {
-        Routes[method].Add(ConvertRouteTemplate(route), handler);
+        //_routes[method].Add(ConvertRouteTemplate(route), handler);
+        _routes[method].Add(new RouteEntry
+        {
+            Pattern = ConvertRouteTemplate(route),
+            Handler = handler,
+            Priority = priority
+        });
         return this;
     }
     
@@ -102,9 +172,9 @@ public class Router(ILogger<Router> log)
     /// <param name="route"></param>
     /// <param name="handler"></param>
     /// <returns></returns>
-    public Router Get(string route, RequestHandler handler)
+    public Router Get(string route, RequestHandler handler, int priority = 0)
     {
-        Routes["GET"].Add(ConvertRouteTemplate(route), handler);
+        Add("GET", route, handler, priority);
         return this;
     }
 
@@ -114,9 +184,9 @@ public class Router(ILogger<Router> log)
     /// <param name="route"></param>
     /// <param name="handler"></param>
     /// <returns></returns>
-    public Router Post(string route, RequestHandler handler)
+    public Router Post(string route, RequestHandler handler, int priority = 0)
     {
-        Routes["POST"].Add(ConvertRouteTemplate(route), handler);
+        Add("POST", route, handler, priority);
         return this;
     }
 

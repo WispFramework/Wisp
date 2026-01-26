@@ -1,8 +1,15 @@
+// This file is part of Wisp Framework.
+// 
+// Licensed under either of
+//   * Apache License, Version 2.0 (https://www.apache.org/licenses/LICENSE-2.0)
+//   * MIT License (https://opensource.org/licenses/MIT)
+// at your option.
+
 namespace Wisp.Framework.Http;
 
 public interface IHttpContextAccessor
 {
     Task SetContext(IHttpContext httpContext);
     
-    Task<IHttpContext?> HttpContext { get; }
+    IHttpContext? HttpContext { get; }
 }

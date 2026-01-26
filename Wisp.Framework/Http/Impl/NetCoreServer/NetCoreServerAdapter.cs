@@ -5,15 +5,18 @@
 //   * MIT License (https://opensource.org/licenses/MIT)
 // at your option.
 
+using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
+using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Web;
+using HttpMultipartParser;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using NetCoreServer;
 using Wisp.Framework.Configuration;
-
+using Wisp.Framework.Extensions;
 using NCSResponse = NetCoreServer.HttpResponse;
 
 namespace Wisp.Framework.Http.Impl.NetCoreServer;
@@ -25,15 +28,15 @@ namespace Wisp.Framework.Http.Impl.NetCoreServer;
 /// <param name="router"></param>
 /// <param name="log"></param>
 /// <param name="middlewares"></param>
-public class NetCoreServerAdapter(IOptions<WispConfiguration> config, Router router, ILogger<NetCoreServerAdapter> log, IEnumerable<IHttpMiddleware> middlewares, IHttpContextAccessor contextAccessor)
+public class NetCoreServerAdapter(IOptions<WispConfiguration> config, Router router, ILogger<NetCoreServerAdapter> log, IEnumerable<IHttpMiddleware> middlewares, IHttpContextAccessor contextAccessor, IServiceProvider serviceProvider)
     : HttpServer(IPAddress.Parse(config.Value.Host), config.Value.Port), IHttpServer
 {
     protected override TcpSession CreateSession()
     {
-        return new AdapterSession(this, router, log, middlewares, contextAccessor);
+        return new AdapterSession(this, router, log, middlewares, contextAccessor, serviceProvider);
     }
 
-    public Task StartAsync()
+    public Task StartAsync(CancellationToken? cancel = default)
     {
         Start();
         return Task.CompletedTask;
@@ -51,75 +54,225 @@ public class NetCoreServerAdapter(IOptions<WispConfiguration> config, Router rou
 
         private readonly ILogger<NetCoreServerAdapter> _log;
         private readonly IHttpContextAccessor _contextAccessor;
+        private readonly IServiceProvider _serviceProvider;
 
         private readonly List<IHttpMiddleware> _middlewares;
 
-        public AdapterSession(NetCoreServerAdapter server, Router router, ILogger<NetCoreServerAdapter> log, IEnumerable<IHttpMiddleware> middlewares, IHttpContextAccessor contextAccessor) : base(server)
+        public AdapterSession(NetCoreServerAdapter server, Router router, ILogger<NetCoreServerAdapter> log, IEnumerable<IHttpMiddleware> middlewares, IHttpContextAccessor contextAccessor, IServiceProvider serviceProvider) : base(server)
         {
             _router = router;
             _log = log;
             _contextAccessor = contextAccessor;
-            _middlewares = middlewares.ToList();
+            _serviceProvider = serviceProvider;
+            _middlewares = middlewares.ToList();            
         }
         
         protected override async void OnReceivedRequest(HttpRequest request)
-        {
-            var context = new AdapterContext(request, this);
-            
-            await _contextAccessor.SetContext(context);
-            
-            foreach (var m in _middlewares)
+        {      
+            try
             {
-                await m.OnRequestReceived(context);
-            }
-            
-            if (context.Request.Headers.TryGetValue("Content-Type", out var ct))
-            {
-                if (ct == "application/x-www-form-urlencoded")
-                {
-                    var nvc = HttpUtility.ParseQueryString(request.Body);
-                    
-                    context.Request.FormData = nvc.AllKeys.ToDictionary(k => k!, k => nvc[k]!);
-                }
-            }
+                _log.LogError("Request Boundary -------------------------------------------------------");
+                var context = new AdapterContext(request, this) { Services = _serviceProvider };
+                
+                var protoHeader = context.Request.Headers.GetOrDefaultIgnoreCaseReadonly("x-forwarded-proto");
+                if (protoHeader is not null && protoHeader.Equals("https", StringComparison.InvariantCultureIgnoreCase))
+                    context.IsHttps = true;
 
-            if (context.IsHandled)
-            {
-                var r = await MakeResponse(context.Response);
-                try
+                var host = context.Request.Headers.GetOrDefaultIgnoreCaseReadonly("host");
+                var forwardedHost = context.Request.Headers.GetOrDefaultIgnoreCaseReadonly("x-forwarded-host");
+
+                if (forwardedHost is not null) context.HostName = forwardedHost;
+                else if (host is not null) context.HostName = host;
+                else context.HostName = string.Empty;
+
+                var transferEncoding = context.Request.Headers.GetOrDefaultIgnoreCaseReadonly("Transfer-Encoding");
+                var isChunked = transferEncoding?.Equals("chunked", StringComparison.OrdinalIgnoreCase) ?? false;
+                if (isChunked)
                 {
-                    SendResponse(r);
+                    var requestBodyStream = new MemoryStream();
+                    context.Request.Body.Position = 0;
+                    await context.Request.Body.CopyToAsync(requestBodyStream);
+                    
+                    context.Request.Body = new MemoryStream(DecodeChunked(requestBodyStream.ToArray()));
                 }
-                catch (ObjectDisposedException ex)
+                
+                var clientEndpoint = Socket.RemoteEndPoint as IPEndPoint;
+                if (clientEndpoint is not null)
                 {
-                    _log.LogError(ex, "could not handle static file");
+                    context.Request.ClientEndpoint = clientEndpoint;
+                }
+
+                await _contextAccessor.SetContext(context);
+
+                foreach (var m in _middlewares.OrderBy(m => m.Priority.Value))
+                {
+                    await m.OnRequestReceived(context);
+                    if (context.IsHandled) break;
+                }
+
+                var ct = context.Request.Headers.GetOrDefaultIgnoreCaseReadonly("Content-Type");
+                context.Request.ContentType = ct ?? "application/octet-stream";
+                
+                if (ct is not null)
+                {
+                    if (ct == "application/x-www-form-urlencoded")
+                    {
+                        var nvc = HttpUtility.ParseQueryString(request.Body);
+
+                        context.Request.FormData = nvc.AllKeys.ToDictionary(k => k!, k => nvc[k]!);
+                    }
+                    else if (ct.StartsWith("multipart/form-data"))
+                    {
+                        var boundary = ct.Split("boundary=")[1];
+                        var parser = await MultipartFormDataParser.ParseAsync(new MemoryStream(request.BodyBytes), boundary);
+
+                        context.Request.Files ??= new();
+                        foreach (var file in parser.Files)
+                        {
+                            if(file is null) continue;
+                            using var ms = new MemoryStream();
+                            file.Data.Position = 0;
+                            await file.Data.CopyToAsync(ms);
+                            ms.Position = 0;
+                            var content = ms.ToArray();
+                            context.Request.Files.Add(new File
+                            {
+                                ContentType = file.ContentType,
+                                Filename = file.FileName,
+                                Data = content,
+                            });
+                        }
+
+                        context.Request.FormData ??= new();
+                        foreach (var field in parser.Parameters)
+                        {
+                            if(field is null) continue;
+                            context.Request.FormData[field.Name] = field.Data;
+                        }
+                    }
+                }
+
+                if (context.IsHandled)
+                {
+                    var r = await MakeResponse(context.Response);
+                    try
+                    {
+                        SendResponse(r);
+                    }
+                    catch (ObjectDisposedException ex)
+                    {
+                        _log.LogError(ex, "could not handle static file");
+                        return;
+                    }
+
+                    return;
+                }
+
+                await _router.Dispatch(context);
+
+                foreach (var m in _middlewares.OrderBy(m => m.Priority.Value))
+                {
+                    await m.OnRequestHandled(context);
+                    if (context.IsHandled) break;
+                }
+
+                if (context.IsHandled)
+                {
+                    var r = await MakeResponse(context.Response);
+                    try
+                    {
+                        SendResponse(r);
+                    }
+                    catch (ObjectDisposedException ex)
+                    {
+                        _log.LogError(ex, "could not handle static file");
+                        return;
+                    }
+
                     return;
                 }
                 
-                return;
+                context.Response.Body.Position = 0;
+                using var bms = new MemoryStream();
+                await context.Response.Body.CopyToAsync(bms);
+                var bodyBytes = bms.ToArray();
+
+                var res = new NCSResponse(context.Response.StatusCode, "HTTP/1.1");
+
+                foreach (var (k, v) in context.Response.Headers)
+                {
+                    Debug.Assert(k != null, "the key must not be null here");
+                    Debug.Assert(v != null, "the value must not be null here");
+
+                    res.SetHeader(k, v);
+                }
+
+                foreach (var (k, v) in context.Response.Cookies)
+                {
+                    res.SetCookie(k, v, path: "/", strict: false, secure: false);
+                }
+
+                res.SetHeader("Content-Type", context.Response.ContentType);
+                res.SetBody(bodyBytes);
+
+                SendResponse(res);
             }
-
-            await _router.Dispatch(context);
-
-            context.Response.Body.Position = 0;
-            var bodyText = await new StreamReader(context.Response.Body).ReadToEndAsync();
-
-            var res = new NCSResponse(context.Response.StatusCode, "HTTP/1.1");
-
-            foreach (var (k, v) in context.Response.Headers)
+            catch (Exception ex)
             {
-                res.SetHeader(k, v);
-            }
+                _log.LogError(ex, "could not handle request");
 
-            foreach (var (k, v) in context.Response.Cookies)
+                var requestAccept = request.GetHeaders().GetOrDefaultIgnoreCase("Accept");
+
+                var res = new NCSResponse(500, "HTTP/1.1");
+
+                if (requestAccept?.Contains("text/html", StringComparison.OrdinalIgnoreCase) ?? false)
+                {
+                    var content = ErrorPageRenderer.RenderErrorPage(ex, request.Url);
+                    res.SetHeader("Content-Type", "text/html");
+                    res.SetBody(content);
+                }
+                else
+                {
+                    res.SetHeader("Content-Type", "application/json");
+
+                    var json = JsonSerializer.Serialize(new
+                    {
+                        StatusCode = 500,
+                        Message = "An unexpected error has occured.",
+                        ExceptionMessage = ex.Message,
+                        ExceptionStackTrace = ex.StackTrace,
+                    }, new JsonSerializerOptions { WriteIndented = true, Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
+
+                    res.SetBody(json);
+                }
+
+                SendResponse(res);
+            }
+        }
+
+        private static byte[] DecodeChunked(byte[] chunkedData)
+        {
+            using var ms = new MemoryStream();
+            int pos = 0;
+
+            while (pos < chunkedData.Length)
             {
-                res.SetCookie(k, v, path: "/", strict: false, secure: false);
+                // read chunk size (hex) until CRLF
+                int crlf = Array.IndexOf(chunkedData, (byte)'\n', pos);
+                if (crlf < 0) break;
+
+                var line = System.Text.Encoding.ASCII.GetString(chunkedData, pos, crlf - pos).Trim();
+                if (!int.TryParse(line, System.Globalization.NumberStyles.HexNumber, null, out int chunkSize))
+                    throw new Exception("Invalid chunk size");
+
+                if (chunkSize == 0) break;
+
+                pos = crlf + 1;
+                ms.Write(chunkedData, pos, chunkSize);
+                pos += chunkSize + 2; // skip \r\n after chunk
             }
 
-            res.SetHeader("Content-Type", context.Response.ContentType);
-            res.SetBody(bodyText);
-
-            SendResponse(res);
+            return ms.ToArray();
         }
 
         private async Task<NCSResponse> MakeResponse(IHttpResponse res)

@@ -22,13 +22,21 @@ public class AdapterContext : IHttpContext
         Request = new AdapterRequest(req);
         _response = new AdapterResponse(sess);
         Response = _response;
+
+        IsHttps = false;
     }
+
+    public bool IsHttps { get; set; }
+    
+    public string HostName { get; set; }
 
     public IHttpRequest Request { get; set; }
 
     public IHttpResponse Response { get; set; }
-    
-    public ISession? Session { get; set; }
 
     public bool IsHandled { get; set; }
+    
+    public Dictionary<string, object?> ExtraData {get;set;} = new();
+
+    public IServiceProvider Services { get; set; }
 }

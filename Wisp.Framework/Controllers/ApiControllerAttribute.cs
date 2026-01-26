@@ -10,7 +10,7 @@ namespace Wisp.Framework.Controllers;
 /// <summary>
 /// Marks an API controller for auto-discovery
 /// </summary>
-public class ApiControllerAttribute : Attribute
+public class ApiControllerAttribute(int priority = 0) : ControllerAttribute(priority)
 {
     
 }

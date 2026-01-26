@@ -5,12 +5,16 @@
 //   * MIT License (https://opensource.org/licenses/MIT)
 // at your option.
 
+using System.Collections;
 using System.Reflection;
+using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Wisp.Framework.Extensions;
 using Wisp.Framework.Http;
 using Wisp.Framework.Middleware.Auth;
+using Wisp.Framework.Middleware.Sessions;
+using Wisp.Framework.Util;
 using Wisp.Framework.Views;
 using static Wisp.Framework.Utils;
 
@@ -27,49 +31,68 @@ public class ControllerRegistrar
         ILogger<ControllerRegistrar> log,
         TemplateRenderer renderer,
         IAuthenticator? authenticator = null,
-        Assembly? assembly = null)
+        Assembly? assembly = null,
+        bool clearPrevious = false)
     {
         assembly ??= Assembly.GetEntryAssembly();
 
+        if(clearPrevious) router.Clear();
+        
         var authConfig = serviceProvider.GetService<IAuthConfig>();
 
         var controllers = assembly?.GetTypes()
-            .Where(t => t.GetCustomAttribute<ControllerAttribute>() != null) ?? throw new InvalidOperationException("this should not happen");
+            .Where(t => t.GetCustomAttribute<ControllerAttribute>(inherit: false) != null)
+            .ToList();
 
+        if (controllers is null) throw new Exception("no controllers found");
+
+        log.LogDebug("Looking for controllers");
+        
         foreach (var controllerType in controllers)
         {
-
+            log.LogDebug("Found controller type {Name}", controllerType.FullName);
             var controllerInstance = ActivatorUtilities.CreateInstance(serviceProvider, controllerType);
+            var controllerAttr = controllerType.GetCustomAttribute<ControllerAttribute>(inherit: false);
 
             foreach (var method in controllerType.GetMethods(BindingFlags.Public | BindingFlags.Instance))
             {
-                var routeAttr = method.GetCustomAttribute<RouteAttribute>();
-                if (routeAttr == null) continue;
+                // var routeAttr = method.GetCustomAttribute<RouteAttribute>();
+                // if (routeAttr == null) continue;
+
+                var routeAttrs = method.GetCustomAttributes<RouteAttribute>().ToArray();
+                if(routeAttrs.Length == 0) continue;
+
+                log.LogDebug("Found controller method {Name}", method.Name);
 
                 var authAttr = method.GetCustomAttribute<AuthorizeAttribute>();
 
                 Router.RequestHandler handler = async context =>
                 {
-                    if (!await AuthenticateAsync(context, authAttr, authenticator, authConfig, routeAttr, log)) return;
+                    if (!await AuthenticateAsync(context, authAttr, authenticator, authConfig, context.Request.Path, log, serviceProvider)) return;
 
-                    var args = BuildControllerArgs(method, serviceProvider);
+                    var args = BuildControllerArgs(method, serviceProvider, context.Request, log);
                     var result = await InvokeControllerAsync(method, controllerInstance, args);
 
-                    EnsureResultBox(result, method, controllerInstance);
+                    var isContentfulResult = EnsureResultBox(result, method, controllerInstance);
 
-                    if (result is ViewResult viewResult)
+                    if (isContentfulResult)
                     {
-                        await WriteViewResponseAsync(context, viewResult, renderer);
+                        if (result is ViewResult viewResult)
+                        {
+                            await WriteViewResponseAsync(context, viewResult, renderer);
+                        }
+                        else
+                        {
+                            await WriteBoxResponseAsync(context, result!);
+                        }
                     }
-                    else
-                    {
-                        await WriteBoxResponseAsync(context, result!);
-                    }
-
-                    context.Response.StatusCode = 200;
                 };
 
-                router.Add(routeAttr.Method, routeAttr.Route, handler);
+                foreach (var routeAttr in routeAttrs)
+                {
+                    log.LogDebug("Registering route {Path} with priority {Prio}", routeAttr.Route, controllerAttr?.Priority ?? 0);
+                    router.Add(routeAttr, handler, controllerAttr?.Priority ?? 0);    
+                }
             }
         }
     }
@@ -81,26 +104,35 @@ public class ControllerRegistrar
         AuthorizeAttribute? authAttr,
         IAuthenticator? authenticator,
         IAuthConfig? authConfig,
-        RouteAttribute routeAttr,
-        ILogger log)
+        string path,
+        ILogger log,
+        IServiceProvider sp)
     {
 
         if (authAttr is null)
         {
-            log.LogDebug("Not checking authentication for {Route} because it doesn't have an [Authorize] attribute", routeAttr.Route);
+            log.LogDebug("Not checking authentication for {Route} because it doesn't have an [Authorize] attribute", path);
             return true;
         }
 
         if (authenticator is null)
         {
-            log.LogDebug("Not checking authentication for {Route} because there's no IAuthenticator registered", routeAttr.Route);
+            log.LogDebug("Not checking authentication for {Route} because there's no IAuthenticator registered", path);
             return true;
         }
 
-        if (!await authenticator.AuthenticateRoute(authAttr.Role))
+        if (authAttr.Authenticator != null)
         {
+            authenticator = sp.GetRequiredKeyedService<IAuthenticator>(authAttr.Authenticator);
+        }
+
+        if (!await authenticator.AuthenticateRoute(authAttr.Roles))
+        {
+            var flashService = sp.GetService<FlashService>();
+            
             if (authConfig is not null)
             {
+                if(flashService is not null) flashService.AddFlashMessage("You are not authorized to access this resource", FlashService.FlashMessageType.Error);
                 context.Response.StatusCode = 307;
                 context.Response.Headers.Add("Location", authConfig.FailureRedirectUri);
             }
@@ -116,10 +148,117 @@ public class ControllerRegistrar
         return true;
     }
 
-    private static object?[] BuildControllerArgs(MethodInfo method, IServiceProvider serviceProvider)
-        => method.GetParameters()
-            .Select(p => serviceProvider.GetService(p.ParameterType) ?? GetDefault(p.ParameterType))
-            .ToArray();
+    private static object?[] BuildControllerArgs(MethodInfo method, IServiceProvider serviceProvider, IHttpRequest request, ILogger log)
+    {
+        return method.GetParameters()
+            .Select(p =>
+            {
+                // Inject [FromBody] args
+                if (p.GetCustomAttribute<FromBodyAttribute>() != null)
+                {
+                    var bodyStream = new MemoryStream();
+                    request.Body.Position = 0;
+                    request.Body.CopyTo(bodyStream);
+                    bodyStream.Position = 0;
+                    var bodyReader = new StreamReader(bodyStream);
+                    var body = bodyReader.ReadToEnd();
+                    
+                    log.LogWarning("Body: {Body}", body);
+                    
+                    var parsed = JsonSerializer.Deserialize(body, p.ParameterType);
+                    if (parsed != null) return parsed;
+                }
+
+                // Inject raw body data
+                if (p.GetCustomAttribute<FromRawBodyAttribute>() != null)
+                {
+                    var bodyStream = new MemoryStream();
+                    request.Body.Position = 0;
+                    request.Body.CopyTo(bodyStream);
+                    bodyStream.Position = 0;
+                    return bodyStream.ToArray();
+                }
+
+                // Inject Headers
+                if (p.GetCustomAttribute<FromHeaderAttribute>() is not null)
+                {
+                    var header = request.Headers.FirstOrDefault(h => string.Equals(h.Key, p.Name, StringComparison.OrdinalIgnoreCase)).Value;
+                    if(header is not null) return ConvertToType(header, p.ParameterType);
+                    return null;
+                }
+
+                // Inject Cookies
+                if (p.GetCustomAttribute<FromCookieAttribute>() is not null)
+                {
+                    var cookie = request.Cookies.GetOrDefaultIgnoreCaseReadonly(p.Name!);
+                    if(cookie is not null) return ConvertToType(cookie, p.ParameterType);
+                    return null;
+                }
+                
+                // Inject Query Params
+                if (request.QueryParams.TryGetValue(p.Name!, out var strValue))
+                {
+                    // Not catching here on purpose because this should throw
+                    return ConvertToType(strValue, p.ParameterType);
+                }
+
+                // Inject Path Variables
+                if (request.PathVars.TryGetValue(p.Name!, out var strVal))
+                {
+                    return ConvertToType(strVal, p.ParameterType);
+                }
+
+                // Inject Form Data 
+                if (request.FormData?.TryGetValue(p.Name!, out var formData) ?? false)
+                {
+                    var targetType = p.ParameterType;
+
+                    if (targetType.IsArray)
+                    {
+                        var elementType = targetType.GetElementType();
+                        if (elementType is null) return null;
+                        var items = formData.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                            .Select(v => ConvertToType(v, elementType))
+                            .ToArray();
+                        
+                        var array = Array.CreateInstance(elementType, items.Length);
+                        items.CopyTo(array, 0);
+                        return array;
+                    }
+
+                    if (targetType.IsGenericType &&
+                        typeof(IList<>).IsAssignableFrom(targetType.GetGenericTypeDefinition()))
+                    {
+                        var elementType = targetType.GetGenericArguments()[0];
+                        var listType = typeof(List<>).MakeGenericType(elementType);
+                        var list = (IList)Activator.CreateInstance(listType)!;
+                        foreach (var v in formData.Split(',', StringSplitOptions.RemoveEmptyEntries))
+                        {
+                            list.Add(ConvertToType(v, elementType));
+                        }
+                        return list;
+                    }
+                    
+                    return ConvertToType(formData, p.ParameterType);
+                }
+                
+                var service = serviceProvider.GetService(p.ParameterType);
+                if(service != null) return service;
+
+                return GetDefault(p.ParameterType);
+            }).ToArray();
+    }
+
+    private static object? ConvertToType(string value, Type type)
+    {
+        if (type == typeof(string)) return value;
+        
+        var underlyingType = Nullable.GetUnderlyingType(type) ?? type;
+        
+        if(underlyingType.IsEnum) return Enum.Parse(underlyingType, value, ignoreCase: true);
+        
+        return Convert.ChangeType(value, underlyingType);
+    }
 
     private static async Task<object?> InvokeControllerAsync(MethodInfo method, object controllerInstance, object?[] args)
     {
@@ -137,13 +276,14 @@ public class ControllerRegistrar
         return result;
     }
 
-    private static void EnsureResultBox(object? result, MethodInfo method, object controllerInstance)
+    private static bool EnsureResultBox(object? result, MethodInfo method, object controllerInstance)
     {
-        if (result is null)
-            throw new ArgumentException($"could not parse controller result for {controllerInstance.GetType().Name}#{method.Name}");
-
-        if (!IsUnboundGenericInstance(result, typeof(IResultBox<>)))
-            throw new ArgumentException($"controller {controllerInstance.GetType().Name}#{method.Name} did not return an implementation of IResultBox<>");
+        // if (result is null)
+        //     throw new ArgumentException($"could not parse controller result for {controllerInstance.GetType().Name}#{method.Name}");
+        return result is not null && IsUnboundGenericInstance(result, typeof(IResultBox<>));
+       // if (!IsUnboundGenericInstance(result, typeof(IResultBox<>)))
+       //     throw new ArgumentException($"controller {controllerInstance.GetType().Name}#{method.Name} did not return an implementation of IResultBox<>");
+               
     }
 
     private static async Task WriteViewResponseAsync(IHttpContext context, ViewResult viewResult, TemplateRenderer renderer)
@@ -166,6 +306,8 @@ public class ControllerRegistrar
         }
 
         var content = await renderer.Render(view.TemplateName, view.Model, context);
+        
+        context.Response.StatusCode = 200;
         context.Response.ContentType = "text/html";
         context.Response.Body = new MemoryStream(content.AsUtf8Bytes());
     }
@@ -177,7 +319,16 @@ public class ControllerRegistrar
             ?? throw new ArgumentException("the IResultBox<> value is null");
 
         var (serialized, isSimple) = ControllerResultSerializer.Serialize(value);
-
+        
+        if (box is IResultBox<Error> errorResult)
+        {
+            context.Response.StatusCode = errorResult.Value?.Code ?? 500;
+        }
+        else if (box is ResultBoxBase rbb)
+        {
+            context.Response.StatusCode = rbb.StatusCode;
+        }
+        
         context.Response.ContentType = isSimple ? "text/plain" : "application/json";
         context.Response.Body = new MemoryStream(serialized.AsUtf8Bytes());
     }

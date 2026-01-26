@@ -13,6 +13,7 @@ using Wisp.Framework.Http;
 using Wisp.Framework.Middleware;
 using Wisp.Framework.Middleware.Auth;
 using Wisp.Framework.Middleware.Sessions;
+using File = System.IO.File;
 
 namespace Wisp.Framework.Views;
 
@@ -31,7 +32,7 @@ public class TemplateRenderer
     };
 
     private readonly FluidViewRenderer _renderer;
-
+    
     public TemplateRenderer(IServiceProvider serviceProvider, IMiddlewareDataInjector dataInjector)
     {
         _authenticator = serviceProvider.GetService<IAuthenticator?>();
@@ -41,6 +42,11 @@ public class TemplateRenderer
         _viewOptions.TemplateOptions.MemberAccessStrategy = UnsafeMemberAccessStrategy.Instance;
         _viewOptions.TemplateOptions.MemberAccessStrategy.MemberNameStrategy = MemberNameStrategies.RenameSnakeCase;
         _viewOptions.TemplateOptions.FileProvider = new PhysicalFileProvider(Path.Combine(Directory.GetCurrentDirectory(), "Templates"));
+        
+        _viewOptions.TemplateOptions.Filters.AddFilter("agoDate", FluidExtensions.DateToAgo);
+        _viewOptions.TemplateOptions.Filters.AddFilter("toJson", FluidExtensions.ToJson);
+        
+        _viewOptions.Parser = new FluidViewParser(new FluidParserOptions { AllowFunctions = true, AllowParentheses = true});
         _renderer = new(_viewOptions);
     }
 
@@ -55,15 +61,18 @@ public class TemplateRenderer
             {
                 viewModel.UserLoggedIn = true;
                 viewModel.CurrentUserName = user.Username;
-                viewModel.CurrentUserRole = user.Role;
+                viewModel.CurrentUserRoles = user.Roles;
+                viewModel.CurrentUserId = user.Id;
             }
         }
 
         if (_flashService is not null)
         {
-            var flashes = await _flashService.GetAllAndDelete();
+            var flashes = _flashService.GetAllAndDelete();
             if(flashes is not null) viewModel.FlashMessages = flashes;
         }
+
+        viewModel.CurrentRoute = context.Request.Path;
 
         viewModel.Middleware = await _middlewareDataInjector.GetData();
 

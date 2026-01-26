@@ -10,18 +10,18 @@ at your option.
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
 
 
     <PackageId>Wisp.Framework.Core</PackageId>
-    <Version>1.0.1</Version>
+    <Version>10.0.0</Version>
     <Authors>Jakub Sycha (utf-8x)</Authors>
     <Company>Wisp</Company>
     <Description>A super-fast, lightweight, embeddable web framework with zero ASP.NET Core dependencies.</Description>
-    <PackageProjectUrl>https://github.com/utf-8x/wisp</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/utf-8x/wisp.git</RepositoryUrl>
+    <PackageProjectUrl>https://codeberg.org/WispFramework/Wisp</PackageProjectUrl>
+    <RepositoryUrl>https://codeberg.org/WispFramework/Wisp.git</RepositoryUrl>
     <RespositoryType>git</RespositoryType>
     <PackageTags>web;framework;lightweight</PackageTags>
     <PackageLicenseExpression>MIT OR Apache-2.0</PackageLicenseExpression>
@@ -35,25 +35,20 @@ at your option.
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- <FrameworkReference Include="Microsoft.AspNetCore.App" /> -->
-    <PackageReference Include="Fluid.Core" Version="2.25.0" />
-    <PackageReference Include="Fluid.ViewEngine" Version="2.25.0" />
-    <PackageReference Include="microsoft.extensions.configuration" Version="9.0.7" />
-    <PackageReference Include="microsoft.extensions.configuration.binder" Version="9.0.7" />
-    <PackageReference Include="microsoft.extensions.configuration.json" Version="9.0.7" />
-    <PackageReference Include="microsoft.extensions.dependencyinjection" Version="9.0.7" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="9.0.0" />
-    <PackageReference Include="microsoft.extensions.options" Version="9.0.7" />
+    <PackageReference Include="Fluid.Core" Version="2.31.0" />
+    <PackageReference Include="Fluid.ViewEngine" Version="2.31.0" />
+    <PackageReference Include="HttpMultipartParser" Version="9.2.0" />
+    <PackageReference Include="microsoft.extensions.configuration" Version="10.0.1" />
+    <PackageReference Include="microsoft.extensions.configuration.binder" Version="10.0.1" />
+    <PackageReference Include="microsoft.extensions.configuration.json" Version="10.0.1" />
+    <PackageReference Include="microsoft.extensions.dependencyinjection" Version="10.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="10.0.1" />
+    <PackageReference Include="microsoft.extensions.options" Version="10.0.1" />
     <PackageReference Include="netcoreserver" Version="8.0.7" />
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="wisp.application.json" CopyToOutputDirectory="Always" CopyToPublishDirectory="Always" />
     <None Include="..\README.md" Pack="True" PackagePath="\" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Extensions\" />
   </ItemGroup>
 
 </Project>

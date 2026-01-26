@@ -1,0 +1,22 @@
+# This file is part of Wisp Framework.
+# 
+# Licensed under either of
+#   * Apache License, Version 2.0 (https://www.apache.org/licenses/LICENSE-2.0)
+#   * MIT License (https://opensource.org/licenses/MIT)
+# at your option.
+
+services:
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.3.3
+    container_name: keycloak
+    ports:
+      - "8080:8080"
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: wisp
+    volumes:
+      - ./keycloak/config:/opt/keycloak/conf
+      - ./keycloak/themes:/opt/keycloak/themes
+      - ./keycloak/providers:/opt/keycloak/providers
+    command: start-dev
+    restart: unless-stopped

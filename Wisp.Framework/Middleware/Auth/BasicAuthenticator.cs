@@ -1,45 +1,32 @@
+// This file is part of Wisp Framework.
+// 
+// Licensed under either of
+//   * Apache License, Version 2.0 (https://www.apache.org/licenses/LICENSE-2.0)
+//   * MIT License (https://opensource.org/licenses/MIT)
+// at your option.
 using Microsoft.Extensions.Logging;
-using Wisp.Framework.Http;
+using Wisp.Framework.Middleware.Sessions;
 
 namespace Wisp.Framework.Middleware.Auth;
 
-public class BasicAuthenticator(IHttpContextAccessor accessor, ILogger<BasicAuthenticator> log, IAuthConfig config) : IAuthenticator
+public class BasicAuthenticator(ISessionAccessor sessionAccessor, ILogger<BasicAuthenticator> log, IAuthConfig config) : IAuthenticator
 {
-    private readonly List<UserPrincipal> _users = new();
-    
-    public async Task<bool> AuthenticateRoute(string? role = null)
+    public async Task<bool> AuthenticateRoute(List<string> roles)
     {
-        var context = await accessor.HttpContext;
-        if (context is null)
+        var principal = await sessionAccessor.GetAsync<UserPrincipal>("auth.principal");
+        if (principal is null)
         {
-            log.LogDebug("authentication failed: no context");
+            log.LogDebug("No user principal in session");
             return false;
         }
         
-        var session = context.Session;
-        if (session is null)
-        {
-            log.LogDebug("authentication failed: no session");
-            return false;
-        }
+        var rolesHash = new HashSet<string>(roles, StringComparer.OrdinalIgnoreCase);
 
-        var username = session.Get<string>("auth.username");
-        if (username is null)
-        {
-            log.LogDebug("authentication failed: no username in session");
-            return false;
-        }
-        
-        var user = _users.FirstOrDefault(u => u.Username.Equals(username, StringComparison.InvariantCultureIgnoreCase));
-        if (user == null)
-        {
-            log.LogDebug("authentication failed: username is invalid");
-            return false;
-        }
-
-        if (role != null && !user.Role.Equals(role, StringComparison.InvariantCultureIgnoreCase))
+        if (roles.Count != 0 && !principal.Roles.Any(r => rolesHash.Contains(r)))
         {
             log.LogDebug("authentication failed: role mismatch");
+            log.LogDebug("user has roles: {Roles}", string.Join(", ", principal.Roles));
+            log.LogDebug("allowed roles: {Roles}", string.Join(", ", rolesHash));
             return false;
         }
 
@@ -48,50 +35,24 @@ public class BasicAuthenticator(IHttpContextAccessor accessor, ILogger<BasicAuth
 
     public async Task<UserPrincipal?> GetUser()
     {
-        var context = await accessor.HttpContext;
-        if (context is null) return null;
-        
-        var session = context.Session;
-        if(session is null) return null;
-        
-        var username = session.Get<string>("auth.username");
-        if(username is null) return null;
-        
-        var user  = _users.FirstOrDefault(u => u.Username.Equals(username, StringComparison.InvariantCultureIgnoreCase));
-        if(user == null) return null;
-        
-        return new UserPrincipal { Username = user.Username, Role = user.Role };
+        var principal = await sessionAccessor.GetAsync<UserPrincipal>("auth.principal");
+
+        return principal;
     }
 
     public async Task<bool> Authenticate(UserPrincipal principal)
     {
-        var context = await accessor.HttpContext;
-        if (context is null) return false;
-        
-        var session = context.Session;
-        if(session is null) return false;
-        
-        session.Set("auth.username", principal.Username);
-        _users.Add(principal);
+        await sessionAccessor.ClearAsync("auth.principal");
+        await sessionAccessor.SetAsync("auth.principal", principal);
         
         return true;
     }
 
     public async Task Deauthenticate()
     {
-        var context = await accessor.HttpContext;
-        if (context is null) return;
-        
-        var session = context.Session;
-        if (session is null) return;
-        
-        var user = session.Get<string>("auth.username");
-        if(user is null) return;
 
-        var principal = _users.FirstOrDefault(u => u.Username == user);
+        var principal = await sessionAccessor.GetAsync<UserPrincipal>("auth.principal");
         if(principal is null) return;
-        
-        session.Remove("auth.username");
-        _users.Remove(principal);
+        await sessionAccessor.ClearAsync("auth.principal");
     }
 }

@@ -1,0 +1,24 @@
+name: 'Build & Test'
+
+on:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: codeberg-small
+    steps:
+      - uses: https://github.com/actions/checkout@v4
+
+      - name: Setup .NET
+        uses: https://github.com/actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --configuration Release --no-restore
+
+      - name: Run Tests
+        run: dotnet test --configuration Release --no-build --verbosity normal

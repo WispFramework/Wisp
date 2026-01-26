@@ -4,5 +4,8 @@
         "Port": 6969,
         "LogLevel": "Debug",
         "StaticFileRoot": "wwwroot"
+    },
+    "FeatureFlags": {
+        "EnableControllerHotReload": true
     }
 }

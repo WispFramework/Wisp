@@ -1,9 +1,16 @@
+// This file is part of Wisp Framework.
+// 
+// Licensed under either of
+//   * Apache License, Version 2.0 (https://www.apache.org/licenses/LICENSE-2.0)
+//   * MIT License (https://opensource.org/licenses/MIT)
+// at your option.
+
 using Microsoft.Extensions.Logging;
 using Wisp.Framework.Http;
 
 namespace Wisp.Framework.Middleware.Sessions;
 
-public class FlashService(IHttpContextAccessor accessor, ILogger<FlashService> log)
+public class FlashService(ISessionAccessor sessionAccessor, ILogger<FlashService> log)
 {
     private Dictionary<string, List<FlashMessage>> _messages = new();
 
@@ -21,15 +28,18 @@ public class FlashService(IHttpContextAccessor accessor, ILogger<FlashService> l
     /// </summary>
     /// <param name="message">the message</param>
     /// <param name="type">arbitrary type</param>
-    public async Task AddFlashMessage(string message, string type = "info")
+    public void AddFlashMessage(string message, string type = "info")
     {
-        var context = await accessor.HttpContext;
-        if (context is null) return;
+        // var context = accessor.HttpContext;
+        // if (context is null) return;
+        //
+        // var session = context.Session;
+        // if (session is null) return;
+        //
+        // var sessionId = session.Id;
         
-        var session = context.Session;
-        if (session is null) return;
-
-        var sessionId = session.Id;
+        var sessionId = sessionAccessor.GetSessionId().ConfigureAwait(true).GetAwaiter().GetResult();
+        if (sessionId is null) return;
 
         if (!_messages.TryGetValue(sessionId, out var list))
         {
@@ -45,7 +55,7 @@ public class FlashService(IHttpContextAccessor accessor, ILogger<FlashService> l
     /// </summary>
     /// <param name="message">the message</param>
     /// <param name="type">built-in type</param>
-    public async Task AddFlashMessage(string message, FlashMessageType type)
+    public void AddFlashMessage(string message, FlashMessageType type)
     {
         var typeString = type switch
         {
@@ -56,32 +66,23 @@ public class FlashService(IHttpContextAccessor accessor, ILogger<FlashService> l
             FlashMessageType.Error => "danger",
         };
         
-        await AddFlashMessage(message, typeString);
+        AddFlashMessage(message, typeString);
     }
 
-    public async Task<List<FlashMessage>?> GetAllAndDelete()
+    public List<FlashMessage>? GetAllAndDelete()
     {
-        var context = await accessor.HttpContext;
-        if (context is null) return null;
-
-        var session = context.Session;
-        if (session is null) return null;
-        
-        log.LogDebug("getting all flashes for {SessionId}", session.Id);
-
-        var sessionId = session.Id;
+        var sessionId = sessionAccessor.GetSessionId().ConfigureAwait(true).GetAwaiter().GetResult();
+        if(sessionId is null) return null;
 
         if (!_messages.TryGetValue(sessionId, out var list) || list.Count == 0)
         {
             log.LogDebug("nothing found");
-            return new List<FlashMessage>();
+            return [];
         }
         
         // Take all messages and clear them
         var toReturn = new List<FlashMessage>(list);
         list.Clear();
-        
-        log.LogDebug("found {N} messages", toReturn.Count);
 
         return toReturn;
     }

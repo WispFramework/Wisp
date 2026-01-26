@@ -6,16 +6,20 @@
 // at your option.
 
 using System.ComponentModel;
+using System.Reflection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Wisp.Framework.Configuration;
+using Wisp.Framework.Hosting;
 using Wisp.Framework.Http;
 using Wisp.Framework.Http.Impl;
 using Wisp.Framework.Http.Impl.NetCoreServer;
 using Wisp.Framework.Middleware;
 using Wisp.Framework.Middleware.Auth;
+using Wisp.Framework.Middleware.ErrorPages;
 using Wisp.Framework.Middleware.Sessions;
+using Wisp.Framework.Util.ServiceDiscovery;
 using Wisp.Framework.Views;
 
 namespace Wisp.Framework;
@@ -27,7 +31,9 @@ public class WispHostBuilder
     
     public IServiceCollection Services => _serviceCollection;
 
-    private readonly ConfigurationBuilder _configBuilder;
+    public IConfiguration Configuration => ConfigurationBuilder.Build();
+
+    public readonly ConfigurationBuilder ConfigurationBuilder;
 
     private IServiceProvider? _serviceProvider;
 
@@ -36,28 +42,32 @@ public class WispHostBuilder
     private readonly List<Action<IServiceCollection>> _serviceBuilders = new();
     
     private Action<ILoggingBuilder>? _loggingBuilderConfig;
+    
+    private Assembly? _serviceScannerAssembly;
 
+    private List<Type> _backgroundServices = [];
+    
     /// <summary>
     /// The host builder configures logging, configuration and dependency injection
     /// </summary>
     public WispHostBuilder()
     {
-        _configBuilder = new ConfigurationBuilder();
-        _configBuilder.AddJsonFile("wisp.json", optional: true);
-        _configBuilder.AddJsonFile("wisp.development.json", optional: true);
+        ConfigurationBuilder = new ConfigurationBuilder();
+        ConfigurationBuilder.AddJsonFile("wisp.json", optional: true);
+        ConfigurationBuilder.AddJsonFile("wisp.development.json", optional: true);
     }
 
-    /// <summary>
-    /// Set up configuration.
-    /// </summary>
-    /// <param name="builder"></param>
-    /// <returns></returns>
-    public WispHostBuilder Configure(Action<IConfigurationBuilder> builder)
-    {
-        _configBuilders.Add(builder);
-
-        return this;
-    }
+    // /// <summary>
+    // /// Set up configuration.
+    // /// </summary>
+    // /// <param name="builder"></param>
+    // /// <returns></returns>
+    // public WispHostBuilder Configure(Action<IConfigurationBuilder> builder)
+    // {
+    //     _configBuilders.Add(builder);
+    //
+    //     return this;
+    // }
 
     /// <summary>
     /// Configure dependency injection
@@ -68,6 +78,13 @@ public class WispHostBuilder
     {
         _serviceBuilders.Add(services);
 
+        return this;
+    }
+
+    public WispHostBuilder AddBackgroundService<T>() where T : class, IBackgroundService
+    {
+        _backgroundServices.Add(typeof(T));
+        _serviceCollection.AddSingleton<T>();
         return this;
     }
 
@@ -130,11 +147,48 @@ public class WispHostBuilder
         return AddMiddleware(typeof(T));
     }
 
+    private bool _inMemorySessionEnabled = false;
+    
     public WispHostBuilder UseInMemorySession()
     {
+        if (_inMemorySessionEnabled) return this;
+        
         _serviceCollection.AddSingleton<ISessionStore, InMemorySessionStore>();
-        _serviceCollection.AddSingleton<IHttpMiddleware, SessionMiddleware>();
+        _serviceCollection.AddScoped<ISessionAccessor, SessionAccessor>();
+        _inMemorySessionEnabled = true;
 
+        return this;
+    }
+
+    /// <summary>
+    /// Enable the friendly error pages middleware. This will ensure that template-based HTML
+    /// error pages are shown instead of JSON or plain-text ones.
+    /// </summary>
+    /// <param name="config"></param>
+    /// <returns></returns>
+    public WispHostBuilder UseFriendlyErrorPages(Action<ErrorPagesConfigBuilder>? config)
+    {
+        var cfg = new ErrorPagesConfigBuilder();
+        config?.Invoke(cfg);
+
+        Services.AddSingleton(cfg.Build());
+        AddMiddleware<ErrorPageMiddleware>();
+
+        return this;
+    }
+
+    public WispHostBuilder UseCors(IConfigurationSection? configSection = null)
+    {
+        configSection ??= Configuration.GetSection("Wisp:Extensions:Cors");
+        Services.Configure<CorsMiddlewareConfig>(configSection);
+        AddMiddleware<CorsMiddleware>();
+
+        return this;
+    }
+
+    public WispHostBuilder UseServiceDiscovery(Assembly assembly)
+    {
+        _serviceScannerAssembly = assembly;
         return this;
     }
 
@@ -144,8 +198,8 @@ public class WispHostBuilder
     /// <returns></returns>
     public WispApplicationBuilder Build()
     {
-        _configBuilders.ForEach(c => c.Invoke(_configBuilder));
-        var config = _configBuilder.Build();
+        // _configBuilders.ForEach(c => c.Invoke(ConfigurationBuilder));
+        var config = ConfigurationBuilder.Build();
 
         _serviceCollection.AddLogging(b =>
         {
@@ -161,7 +215,10 @@ public class WispHostBuilder
         });
 
         _serviceCollection.AddSingleton<IConfiguration>(config);
+        
         _serviceCollection.Configure<WispConfiguration>(config.GetSection("Wisp"));
+        _serviceCollection.Configure<FeatureFlags>(config.GetSection("FeatureFlags"));
+        
         _serviceCollection.AddSingleton<Router>();
         _serviceCollection.AddSingleton<IHttpServer, NetCoreServerAdapter>();
         _serviceCollection.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
@@ -169,8 +226,30 @@ public class WispHostBuilder
         _serviceCollection.AddSingleton<IMiddlewareDataInjector, MiddlewareDataInjector>();
 
         _serviceBuilders.ForEach(s => s.Invoke(_serviceCollection));
-        
+
+        if (_serviceScannerAssembly is not null)
+        {
+            var tempProvider = _serviceCollection.BuildServiceProvider();
+            var logger = tempProvider.GetRequiredService<ILogger<ServiceRegistrar>>();
+            var registrar = new ServiceRegistrar(_serviceCollection, logger);
+            registrar.ScanAssembly(_serviceScannerAssembly);
+        }
+
+        List<IBackgroundService> bgsInstances = [];
+        var tempSp = _serviceCollection.BuildServiceProvider();
+        foreach (var serviceType in _backgroundServices)
+        {
+            var instance = tempSp.GetService(serviceType);
+            if (instance is IBackgroundService bgs)
+            {
+                bgsInstances.Add(bgs);
+            }
+        }
+        _serviceCollection.AddSingleton(new BackgroundServiceManager(bgsInstances,
+            tempSp.GetRequiredService<ILogger<BackgroundServiceManager>>()));
+
         _serviceProvider = _serviceCollection.BuildServiceProvider();
+
 
         var sessionProviders = _serviceProvider.GetServices<ISessionStore>().ToList();
         if (sessionProviders.Count() > 1)

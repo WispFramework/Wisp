@@ -5,6 +5,7 @@
 //   * MIT License (https://opensource.org/licenses/MIT)
 // at your option.
 
+using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -48,12 +49,12 @@ public class WispApplicationBuilder
     /// Enable controller discovery
     /// </summary>
     /// <returns></returns>
-    public WispApplicationBuilder UseControllers()
+    public WispApplicationBuilder UseControllers(Assembly? controllersAssembly = null)
     {
         var log = _serviceProvider.GetRequiredService<ILogger<ControllerRegistrar>>();
         var renderer = _serviceProvider.GetRequiredService<TemplateRenderer>();
         var auth = _serviceProvider.GetService<IAuthenticator>();
-        ControllerRegistrar.RegisterControllers(_router, _serviceProvider, log, renderer, authenticator: auth);
+        ControllerRegistrar.RegisterControllers(_router, _serviceProvider, log, renderer, authenticator: auth, assembly: controllersAssembly);
         return this;
     }
 
