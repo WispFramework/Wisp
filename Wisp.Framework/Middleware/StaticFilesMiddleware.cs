@@ -41,15 +41,26 @@ public class StaticFilesMiddleware(ILogger<StaticFilesMiddleware> log, IOptions<
     public override async Task OnRequestReceived(IHttpContext context)
     {
         var configRoot = config.Value.StaticFileRoot;
+        var allowIndexFiles = config.Value.AllowIndexFiles;
 
         var path = context.Request.Path.TrimStart('/');
-        if (string.IsNullOrEmpty(path)) return;
+        if (string.IsNullOrEmpty(path)) {
+            if(!allowIndexFiles)
+                return;
+            
+            path = "index.html";
+        }
         path = path.Split('?', 2)[0];
+
+        // if(path.EndsWith('/') && allowIndexFiles) path = path + "index.html";
+        
         
         log.LogDebug("Looking for static file {File}", path);
         
         var root = Path.GetFullPath(configRoot);
         var reqPath = Path.GetFullPath(Path.Combine(root, path));
+
+        if(Directory.Exists(reqPath) && allowIndexFiles) reqPath = Path.GetFullPath(Path.Combine(root, path, "index.html"));
 
         if (!reqPath.StartsWith(root))
         {

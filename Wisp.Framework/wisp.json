@@ -3,7 +3,8 @@
         "Host": "0.0.0.0",
         "Port": 6969,
         "LogLevel": "Debug",
-        "StaticFileRoot": "wwwroot"
+        "StaticFileRoot": "wwwroot",
+        "AllowIndexFiles": false
     },
     "FeatureFlags": {
         "EnableControllerHotReload": true

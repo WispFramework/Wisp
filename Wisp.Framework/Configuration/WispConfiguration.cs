@@ -19,4 +19,6 @@ public class WispConfiguration
     public required string LogLevel { get; set; } = "Information";
 
     public required string StaticFileRoot { get; set; } = "wwwroot";
+
+    public required bool AllowIndexFiles { get; set; } = false;
 }

@@ -71,7 +71,6 @@ public class NetCoreServerAdapter(IOptions<WispConfiguration> config, Router rou
         {      
             try
             {
-                _log.LogError("Request Boundary -------------------------------------------------------");
                 var context = new AdapterContext(request, this) { Services = _serviceProvider };
                 
                 var protoHeader = context.Request.Headers.GetOrDefaultIgnoreCaseReadonly("x-forwarded-proto");
