@@ -11,7 +11,7 @@ namespace Wisp.Framework.Middleware.Auth;
 
 public class BasicAuthenticator(ISessionAccessor sessionAccessor, ILogger<BasicAuthenticator> log, IAuthConfig config) : IAuthenticator
 {
-    public async Task<bool> AuthenticateRoute(List<string> roles)
+    public virtual async Task<bool> AuthenticateRoute(List<string> roles)
     {
         var principal = await sessionAccessor.GetAsync<UserPrincipal>("auth.principal");
         if (principal is null)
@@ -33,14 +33,14 @@ public class BasicAuthenticator(ISessionAccessor sessionAccessor, ILogger<BasicA
         return true;
     }
 
-    public async Task<UserPrincipal?> GetUser()
+    public virtual async Task<UserPrincipal?> GetUser()
     {
         var principal = await sessionAccessor.GetAsync<UserPrincipal>("auth.principal");
 
         return principal;
     }
 
-    public async Task<bool> Authenticate(UserPrincipal principal)
+    public virtual async Task<bool> Authenticate(UserPrincipal principal)
     {
         await sessionAccessor.ClearAsync("auth.principal");
         await sessionAccessor.SetAsync("auth.principal", principal);
@@ -48,7 +48,7 @@ public class BasicAuthenticator(ISessionAccessor sessionAccessor, ILogger<BasicA
         return true;
     }
 
-    public async Task Deauthenticate()
+    public virtual async Task Deauthenticate()
     {
 
         var principal = await sessionAccessor.GetAsync<UserPrincipal>("auth.principal");
