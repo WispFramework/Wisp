@@ -66,6 +66,7 @@ public class Router(ILogger<Router> log, IEnumerable<IHttpMiddleware> middleware
     public async Task Dispatch(IHttpContext context)
     {
         var request = context.Request;
+        
         var method = request.Method;
         var uri = request.Path;
 
@@ -93,7 +94,7 @@ public class Router(ILogger<Router> log, IEnumerable<IHttpMiddleware> middleware
 
                     foreach (var m in _middlewares.OrderBy(m => m.Priority.Value))
                     {
-                        await m.OnRequestRouted(context);
+                        await m.OnRequestRouted();
                     }
 
                     await route.Handler.Invoke(context);

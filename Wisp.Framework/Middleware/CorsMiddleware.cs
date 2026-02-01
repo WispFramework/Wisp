@@ -10,12 +10,14 @@ using Wisp.Framework.Http;
 
 namespace Wisp.Framework.Middleware;
 
-public class CorsMiddleware(IOptions<CorsMiddlewareConfig> options) : HttpMiddleware
+public class CorsMiddleware(IOptions<CorsMiddlewareConfig> options, IHttpContextAccessor contextAccessor) : HttpMiddleware
 {
     private readonly CorsMiddlewareConfig _config = options.Value;
     
-    public override Task OnRequestReceived(IHttpContext context)
+    public override Task OnRequestReceived()
     {
+        var context = contextAccessor.HttpContext!;
+        
         context.Response.Headers.Add("Access-Control-Allow-Origin", _config.AccessControlAllowOrigin);
 
         if (_config.AccessControlExposeHeaders is not null)

@@ -11,12 +11,14 @@ using Wisp.Framework.Views;
 
 namespace Wisp.Framework.Middleware.ErrorPages;
 
-public class ErrorPageMiddleware(ErrorPagesConfig config, TemplateRenderer tr) : HttpMiddleware
+public class ErrorPageMiddleware(ErrorPagesConfig config, TemplateRenderer tr, IHttpContextAccessor contextAccessor) : HttpMiddleware
 {
     public const string ExtraDataKey = "__errorPageMiddleware_data";
 
-    public override async Task OnRequestHandled(IHttpContext context)
+    public override async Task OnRequestHandled()
     {
+        var context = contextAccessor.HttpContext!;
+        
         if (context.ExtraData.TryGetValue(ExtraDataKey, out var errorData) && errorData is ErrorPageData data)
         {
             var template = data.StatusCode switch

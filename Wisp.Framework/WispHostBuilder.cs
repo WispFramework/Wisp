@@ -130,10 +130,11 @@ public class WispHostBuilder
     /// A shortcut for adding middleware
     /// </summary>
     /// <param name="middleware"></param>
+    /// <param name="lifetime"></param>
     /// <returns></returns>
-    public WispHostBuilder AddMiddleware(Type middleware)
+    public WispHostBuilder AddMiddleware(Type middleware, ServiceLifetime lifetime = ServiceLifetime.Singleton)
     {
-        _serviceCollection.Add(new ServiceDescriptor(typeof(IHttpMiddleware), middleware, ServiceLifetime.Singleton));
+        _serviceCollection.Add(new ServiceDescriptor(typeof(IHttpMiddleware), middleware, lifetime));
         return this;
     }
 
@@ -142,9 +143,9 @@ public class WispHostBuilder
     /// </summary>
     /// <typeparam name="T"></typeparam>
     /// <returns></returns>
-    public WispHostBuilder AddMiddleware<T>()
+    public WispHostBuilder AddMiddleware<T>(ServiceLifetime lifetime = ServiceLifetime.Singleton)
     {
-        return AddMiddleware(typeof(T));
+        return AddMiddleware(typeof(T), lifetime);
     }
 
     private bool _inMemorySessionEnabled = false;

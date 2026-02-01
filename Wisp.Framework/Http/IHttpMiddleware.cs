@@ -19,23 +19,20 @@ public interface IHttpMiddleware
     /// <summary>
     /// This is called before the request has been processed
     /// </summary>
-    /// <param name="context"></param>
     /// <returns></returns>
-    Task OnRequestReceived(IHttpContext context);
+    Task OnRequestReceived();
 
     /// <summary>
     /// This is called right after the request has been routed but before running the route code
     /// </summary>
-    /// <param name="context"></param>
     /// <returns></returns>
-    Task OnRequestRouted(IHttpContext context);
+    Task OnRequestRouted();
 
     /// <summary>
     /// This is called after the request is fully processed but not sent yet
     /// </summary>
-    /// <param name="context"></param>
     /// <returns></returns>
-    Task OnRequestHandled(IHttpContext context);
+    Task OnRequestHandled();
     
     /// <summary>
     /// The priority, <see cref="MiddlewarePriority"/>

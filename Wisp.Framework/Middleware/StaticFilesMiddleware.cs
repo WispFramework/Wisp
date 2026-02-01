@@ -13,7 +13,7 @@ using File = System.IO.File;
 
 namespace Wisp.Framework.Middleware;
 
-public class StaticFilesMiddleware(ILogger<StaticFilesMiddleware> log, IOptions<WispConfiguration> config) : HttpMiddleware
+public class StaticFilesMiddleware(ILogger<StaticFilesMiddleware> log, IOptions<WispConfiguration> config, IHttpContextAccessor contextAccessor) : HttpMiddleware
 {
     private static readonly Dictionary<string, string> MimeTypes = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -38,8 +38,10 @@ public class StaticFilesMiddleware(ILogger<StaticFilesMiddleware> log, IOptions<
         {".ogg", "audio/ogg"}
     };
 
-    public override async Task OnRequestReceived(IHttpContext context)
+    public override async Task OnRequestReceived()
     {
+        var context = contextAccessor.HttpContext!;
+        
         var configRoot = config.Value.StaticFileRoot;
         var allowIndexFiles = config.Value.AllowIndexFiles;
 

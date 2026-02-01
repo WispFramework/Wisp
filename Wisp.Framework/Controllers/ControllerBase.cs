@@ -34,6 +34,8 @@ public abstract class ControllerBase
     protected internal ResultBox<T> BadRequest<T>(T content) => new ResultBox<T>(content) { StatusCode = HttpStatusCode.BadRequest };
     
     protected internal ResultBox BadRequest(object content) => new ResultBox(content) { StatusCode = HttpStatusCode.BadRequest };
+
+    protected internal ResultBox<T> Forbidden<T>(T content) => new ResultBox<T>(content) { StatusCode = HttpStatusCode.Forbidden };
     
     protected internal ResultBox<T> Ok<T>(T content) => new ResultBox<T>(content);
 

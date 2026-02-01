@@ -17,45 +17,39 @@ namespace Wisp.Framework.Http.Impl.NetCoreServer;
 /// </summary>
 public class AdapterRequest : IHttpRequest
 {
-    private readonly HttpRequest _req;
-
     /// <summary>
     /// This is the NetCoreServer implementation of IHttpRequest
     /// </summary>
     /// <param name="req"></param>
     public AdapterRequest(HttpRequest req)
     {
-        _req = req;
         Path = req.Url;
+        Method = req.Method;
+        Headers = req.GetHeaders().ToDictionary();
 
-        Body = new MemoryStream(_req.BodyBytes ?? []);
-        Cookies = new Dictionary<string, string>(_req.GetCookies());
+        if (Path.Contains('?'))
+        {
+            var parsed = HttpUtility.ParseQueryString(Path.Split('?', 2)[1]);
+            var dic = parsed.AllKeys.ToDictionary(k => k ?? "unnamed", k => parsed[k] ?? "");
+            QueryParams = dic;
+        }
+
+        Body = new MemoryStream(req.BodyBytes ?? []);
+        Cookies = req.GetCookies().ToDictionary();
     }
 
 
     public string Id { get; } = Guid.NewGuid().ToString();
     
-    public string Method => _req.Method;
+    public string Method { get; }
 
     public string Path { get; }
 
     public IPEndPoint ClientEndpoint { get; set; }
 
-    public IReadOnlyDictionary<string, string> Headers => _req.GetHeaders();
+    public IReadOnlyDictionary<string, string> Headers { get; }
 
-    public IReadOnlyDictionary<string, string> QueryParams
-    {
-        get
-        {
-            if (Path.Contains('?'))
-            {
-                var parsed = HttpUtility.ParseQueryString(Path.Split('?', 2)[1]);
-                var dic = parsed.AllKeys.ToDictionary(k => k ?? "unnamed", k => parsed[k] ?? "");
-                return dic;
-            }
-            return new Dictionary<string, string>();
-        }
-    }
+    public IReadOnlyDictionary<string, string> QueryParams { get; }
 
     public Dictionary<string, string> PathVars { get; set; }
     

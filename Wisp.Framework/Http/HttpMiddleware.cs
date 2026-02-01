@@ -9,17 +9,17 @@ namespace Wisp.Framework.Http;
 
 public abstract class HttpMiddleware : IHttpMiddleware
 {
-    public virtual Task OnRequestHandled(IHttpContext context)
+    public virtual Task OnRequestHandled()
     {
         return Task.CompletedTask;
     }
 
-    public virtual Task OnRequestReceived(IHttpContext context)
+    public virtual Task OnRequestReceived()
     {
         return Task.CompletedTask;
     }
 
-    public virtual Task OnRequestRouted(IHttpContext context)
+    public virtual Task OnRequestRouted()
     {
         return Task.CompletedTask;
     }
