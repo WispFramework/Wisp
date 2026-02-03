@@ -34,6 +34,8 @@ public class AdapterRequest : IHttpRequest
             QueryParams = dic;
         }
 
+        QueryParams ??= new Dictionary<string, string>();
+
         Body = new MemoryStream(req.BodyBytes ?? []);
         Cookies = req.GetCookies().ToDictionary();
     }
