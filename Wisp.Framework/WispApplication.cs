@@ -66,9 +66,8 @@ public class WispApplication
     {
         var log = _serviceProvider.GetRequiredService<ILogger<ControllerRegistrar>>();
         var renderer = _serviceProvider.GetRequiredService<TemplateRenderer>();
-        var auth = _serviceProvider.GetService<IAuthenticator>();
         var router = _serviceProvider.GetRequiredService<Router>();
-        ControllerRegistrar.RegisterControllers(router, _serviceProvider, log, renderer, authenticator: auth, clearPrevious: true);
+        ControllerRegistrar.RegisterControllers(router, _serviceProvider, log, renderer, clearPrevious: true);
     }
 
     /// <summary>

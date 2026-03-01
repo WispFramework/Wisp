@@ -11,8 +11,10 @@ namespace Wisp.Framework.Controllers;
 
 public static class ControllerResultSerializer
 {
-    public static (string Content, bool IsSimple) Serialize<T>(T value)
+    public static (string? Content, bool IsSimple) Serialize<T>(T? value)
     {
+        if (value is null) return (null, true);
+        
         var type = typeof(T);
 
         if (IsSimpleType(type))

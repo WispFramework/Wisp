@@ -11,7 +11,7 @@ namespace Wisp.Framework.Controllers;
 
 public class ResultBox<T> : ResultBoxBase, IResultBox<T>
 {
-    public ResultBox(T value) => Value = value;
+    public ResultBox(T? value) => Value = value;
 
     public ResultBox() {}
 
@@ -20,4 +20,4 @@ public class ResultBox<T> : ResultBoxBase, IResultBox<T>
     public Type ValueType => typeof(T);
 }
 
-public class ResultBox(object value) : ResultBox<object>(value) {}
+public class ResultBox(object? value = null) : ResultBox<object>(value) {}

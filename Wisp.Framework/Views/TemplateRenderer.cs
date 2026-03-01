@@ -45,6 +45,8 @@ public class TemplateRenderer
         
         _viewOptions.TemplateOptions.Filters.AddFilter("agoDate", FluidExtensions.DateToAgo);
         _viewOptions.TemplateOptions.Filters.AddFilter("toJson", FluidExtensions.ToJson);
+
+        _viewOptions.TemplateOptions.ValueConverters.Add((v) => v is Enum e ? $"{e}" : null);
         
         _viewOptions.Parser = new FluidViewParser(new FluidParserOptions { AllowFunctions = true, AllowParentheses = true});
         _renderer = new(_viewOptions);

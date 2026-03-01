@@ -30,7 +30,7 @@ public class ControllerRegistrar
         IServiceProvider serviceProvider,
         ILogger<ControllerRegistrar> log,
         TemplateRenderer renderer,
-        IAuthenticator? authenticator = null,
+        // IAuthenticator? authenticator = null,
         Assembly? assembly = null,
         bool clearPrevious = false)
     {
@@ -51,7 +51,8 @@ public class ControllerRegistrar
         foreach (var controllerType in controllers)
         {
             log.LogDebug("Found controller type {Name}", controllerType.FullName);
-            var controllerInstance = ActivatorUtilities.CreateInstance(serviceProvider, controllerType);
+            // var serviceScope = serviceProvider.CreateScope();
+            // var controllerInstance = ActivatorUtilities.CreateInstance(serviceScope.ServiceProvider, controllerType);
             var controllerAttr = controllerType.GetCustomAttribute<ControllerAttribute>(inherit: false);
 
             foreach (var method in controllerType.GetMethods(BindingFlags.Public | BindingFlags.Instance))
@@ -68,9 +69,15 @@ public class ControllerRegistrar
 
                 Router.RequestHandler handler = async context =>
                 {
-                    if (!await AuthenticateAsync(context, authAttr, authenticator, authConfig, context.Request.Path, log, serviceProvider)) return;
+                    await using var serviceScope = serviceProvider.CreateAsyncScope();
+                    var controllerInstance =
+                        ActivatorUtilities.CreateInstance(serviceScope.ServiceProvider, controllerType);
+                    
+                    var authenticator = serviceScope.ServiceProvider.GetService<IAuthenticator>();
+                    
+                    if (!await AuthenticateAsync(context, authAttr, authenticator, authConfig, context.Request.Path, log, serviceScope.ServiceProvider)) return;
 
-                    var args = BuildControllerArgs(method, serviceProvider, context.Request, log);
+                    var args = BuildControllerArgs(method, serviceScope.ServiceProvider, context.Request, log);
                     var result = await InvokeControllerAsync(method, controllerInstance, args);
 
                     var isContentfulResult = EnsureResultBox(result, method, controllerInstance);
@@ -196,14 +203,14 @@ public class ControllerRegistrar
                 }
                 
                 // Inject Query Params
-                if (request.QueryParams.TryGetValue(p.Name!, out var strValue))
+                if (request.QueryParams?.TryGetValue(p.Name!, out var strValue) == true && strValue is not null)
                 {
                     // Not catching here on purpose because this should throw
                     return ConvertToType(strValue, p.ParameterType);
                 }
 
                 // Inject Path Variables
-                if (request.PathVars.TryGetValue(p.Name!, out var strVal))
+                if (request.PathVars.TryGetValue(p.Name!, out var strVal) && strVal is not null)
                 {
                     return ConvertToType(strVal, p.ParameterType);
                 }
@@ -256,6 +263,7 @@ public class ControllerRegistrar
         var underlyingType = Nullable.GetUnderlyingType(type) ?? type;
         
         if(underlyingType.IsEnum) return Enum.Parse(underlyingType, value, ignoreCase: true);
+        if(underlyingType == typeof(Guid)) return Guid.Parse(value);
         
         return Convert.ChangeType(value, underlyingType);
     }
@@ -315,8 +323,7 @@ public class ControllerRegistrar
     private static async Task WriteBoxResponseAsync(IHttpContext context, object box)
     {
         var valueProp = box.GetType().GetProperty("Value");
-        var value = valueProp?.GetValue(box)
-            ?? throw new ArgumentException("the IResultBox<> value is null");
+        var value = valueProp?.GetValue(box);
 
         var (serialized, isSimple) = ControllerResultSerializer.Serialize(value);
         
@@ -327,6 +334,12 @@ public class ControllerRegistrar
         else if (box is ResultBoxBase rbb)
         {
             context.Response.StatusCode = rbb.StatusCode;
+        }
+
+        if (serialized is null)
+        {
+            context.Response.Body = new MemoryStream();
+            return;
         }
         
         context.Response.ContentType = isSimple ? "text/plain" : "application/json";
