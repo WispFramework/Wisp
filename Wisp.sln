@@ -15,6 +15,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Wisp.Extensions.OpenApi", "
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Wisp.Extensions.Admin", "Wisp.Extensions.Admin\Wisp.Extensions.Admin.csproj", "{C451043C-BADC-4F26-8300-7370EEEE4FB1}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Wisp.Extensions.I18n", "Wisp.Extensions.I18n\Wisp.Extensions.I18n.csproj", "{CF909D83-9F3D-4115-9C76-C6C2E902CBBD}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -97,6 +99,18 @@ Global
 		{C451043C-BADC-4F26-8300-7370EEEE4FB1}.Release|x64.Build.0 = Release|Any CPU
 		{C451043C-BADC-4F26-8300-7370EEEE4FB1}.Release|x86.ActiveCfg = Release|Any CPU
 		{C451043C-BADC-4F26-8300-7370EEEE4FB1}.Release|x86.Build.0 = Release|Any CPU
+		{CF909D83-9F3D-4115-9C76-C6C2E902CBBD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CF909D83-9F3D-4115-9C76-C6C2E902CBBD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CF909D83-9F3D-4115-9C76-C6C2E902CBBD}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{CF909D83-9F3D-4115-9C76-C6C2E902CBBD}.Debug|x64.Build.0 = Debug|Any CPU
+		{CF909D83-9F3D-4115-9C76-C6C2E902CBBD}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{CF909D83-9F3D-4115-9C76-C6C2E902CBBD}.Debug|x86.Build.0 = Debug|Any CPU
+		{CF909D83-9F3D-4115-9C76-C6C2E902CBBD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CF909D83-9F3D-4115-9C76-C6C2E902CBBD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CF909D83-9F3D-4115-9C76-C6C2E902CBBD}.Release|x64.ActiveCfg = Release|Any CPU
+		{CF909D83-9F3D-4115-9C76-C6C2E902CBBD}.Release|x64.Build.0 = Release|Any CPU
+		{CF909D83-9F3D-4115-9C76-C6C2E902CBBD}.Release|x86.ActiveCfg = Release|Any CPU
+		{CF909D83-9F3D-4115-9C76-C6C2E902CBBD}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

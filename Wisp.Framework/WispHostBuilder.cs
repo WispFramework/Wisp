@@ -7,6 +7,7 @@
 
 using System.ComponentModel;
 using System.Reflection;
+using Fluid;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -46,6 +47,11 @@ public class WispHostBuilder
     private Assembly? _serviceScannerAssembly;
 
     private List<Type> _backgroundServices = [];
+
+    private List<(string Name, FilterDelegate Delegate)> _templateFilters = [];
+
+    private List<Action<WispHostBuilder>> _doLast = [];
+    
     
     /// <summary>
     /// The host builder configures logging, configuration and dependency injection
@@ -95,6 +101,12 @@ public class WispHostBuilder
         return this;
     }
 
+    public WispHostBuilder AddDoLast(Action<WispHostBuilder> action)
+    {
+        _doLast.Add(action);
+        return this;
+    }
+
     /// <summary>
     /// Configure logging. This method should only be called once
     /// </summary>
@@ -120,6 +132,12 @@ public class WispHostBuilder
     {
         _serviceCollection.AddSingleton<FlashService>();
 
+        return this;
+    }
+
+    public WispHostBuilder AddTemplateFilter(string name, FilterDelegate @delegate)
+    {
+        _templateFilters.Add((name, @delegate));
         return this;
     }
 
@@ -230,7 +248,12 @@ public class WispHostBuilder
         _serviceCollection.AddSingleton<Router>();
         _serviceCollection.AddSingleton<IHttpServer, NetCoreServerAdapter>();
         _serviceCollection.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
-        _serviceCollection.AddSingleton<TemplateRenderer>();
+        _serviceCollection.AddSingleton<TemplateRenderer>(sp =>
+        {
+            var injector = sp.GetRequiredService<IMiddlewareDataInjector>();
+            var middlewares = sp.GetServices<IHttpMiddleware>().ToList();
+            return new TemplateRenderer(sp, injector, middlewares, _templateFilters);
+        });
         _serviceCollection.AddSingleton<IMiddlewareDataInjector, MiddlewareDataInjector>();
 
         _serviceBuilders.ForEach(s => s.Invoke(_serviceCollection));
@@ -256,6 +279,11 @@ public class WispHostBuilder
         _serviceCollection.AddSingleton(new BackgroundServiceManager(bgsInstances,
             tempSp.GetRequiredService<ILogger<BackgroundServiceManager>>()));
 
+        foreach (var action in _doLast)
+        {
+            action.Invoke(this);
+        }
+        
         _serviceProvider = _serviceCollection.BuildServiceProvider();
 
 

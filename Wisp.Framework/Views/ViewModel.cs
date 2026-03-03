@@ -26,4 +26,6 @@ public class ViewModel
     public Dictionary<string, object?> Middleware { get; set; } = new();
     
     public string CurrentUserId { get; set; } = string.Empty;
+    
+    public string? Locale { get; set; }
 }

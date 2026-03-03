@@ -169,9 +169,6 @@ public class ControllerRegistrar
                     bodyStream.Position = 0;
                     var bodyReader = new StreamReader(bodyStream);
                     var body = bodyReader.ReadToEnd();
-                    
-                    log.LogWarning("Body: {Body}", body);
-                    
                     var parsed = JsonSerializer.Deserialize(body, p.ParameterType);
                     if (parsed != null) return parsed;
                 }

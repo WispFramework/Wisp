@@ -24,6 +24,7 @@ public class TemplateRenderer
     private readonly FlashService? _flashService;
 
     private readonly IMiddlewareDataInjector _middlewareDataInjector;
+    private readonly List<IHttpMiddleware> _middlewares;
 
     private readonly FluidViewEngineOptions _viewOptions = new()
     {
@@ -33,11 +34,12 @@ public class TemplateRenderer
 
     private readonly FluidViewRenderer _renderer;
     
-    public TemplateRenderer(IServiceProvider serviceProvider, IMiddlewareDataInjector dataInjector)
+    public TemplateRenderer(IServiceProvider serviceProvider, IMiddlewareDataInjector dataInjector, List<IHttpMiddleware> middlewares, List<(string Name, FilterDelegate Delegate)>? filters = null)
     {
         _authenticator = serviceProvider.GetService<IAuthenticator?>();
         _flashService = serviceProvider.GetService<FlashService?>();
         _middlewareDataInjector = dataInjector;
+        _middlewares = middlewares;
 
         _viewOptions.TemplateOptions.MemberAccessStrategy = UnsafeMemberAccessStrategy.Instance;
         _viewOptions.TemplateOptions.MemberAccessStrategy.MemberNameStrategy = MemberNameStrategies.RenameSnakeCase;
@@ -45,6 +47,11 @@ public class TemplateRenderer
         
         _viewOptions.TemplateOptions.Filters.AddFilter("agoDate", FluidExtensions.DateToAgo);
         _viewOptions.TemplateOptions.Filters.AddFilter("toJson", FluidExtensions.ToJson);
+
+        foreach (var filter in filters ?? [])
+        {
+            _viewOptions.TemplateOptions.Filters.AddFilter(filter.Name, filter.Delegate);
+        }
 
         _viewOptions.TemplateOptions.ValueConverters.Add((v) => v is Enum e ? $"{e}" : null);
         
@@ -83,6 +90,11 @@ public class TemplateRenderer
         
         if(!File.Exists(templateAbsolutePath)) return $"template {templateAbsolutePath} not found";
 
+        foreach (var mw in _middlewares)
+        {
+            await mw.OnTemplateRendering(viewModel);
+        }
+        
         try
         {
             var ctx = new TemplateContext(viewModel, _viewOptions.TemplateOptions);

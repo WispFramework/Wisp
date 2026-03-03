@@ -5,6 +5,8 @@
 //   * MIT License (https://opensource.org/licenses/MIT)
 // at your option.
 
+using Wisp.Framework.Views;
+
 namespace Wisp.Framework.Http;
 
 public abstract class HttpMiddleware : IHttpMiddleware
@@ -20,6 +22,11 @@ public abstract class HttpMiddleware : IHttpMiddleware
     }
 
     public virtual Task OnRequestRouted()
+    {
+        return Task.CompletedTask;
+    }
+
+    public virtual Task OnTemplateRendering(ViewModel model)
     {
         return Task.CompletedTask;
     }
