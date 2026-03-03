@@ -5,6 +5,8 @@
 //   * MIT License (https://opensource.org/licenses/MIT)
 // at your option.
 
+using Wisp.Framework.Views;
+
 namespace Wisp.Framework.Http;
 
 /// <summary>
@@ -33,6 +35,13 @@ public interface IHttpMiddleware
     /// </summary>
     /// <returns></returns>
     Task OnRequestHandled();
+
+    /// <summary>
+    /// This is called just before the template renders
+    /// </summary>
+    /// <param name="model"></param>
+    /// <returns></returns>
+    Task OnTemplateRendering(ViewModel model);
     
     /// <summary>
     /// The priority, <see cref="MiddlewarePriority"/>
