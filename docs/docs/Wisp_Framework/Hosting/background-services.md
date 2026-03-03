@@ -4,12 +4,36 @@ icon: lucide/server-cog
 
 # Background Services
 
-A background service is a service that runs in the background, independent of the traditional
-request-response HTTP model.
+A background service runs independently of the request-response HTTP lifecycle.
 
 Wisp injects dependencies and takes care of managing your service's lifecycle for you.
 
 ## Writing a Background Service
+
+!!! warning
+    Background services are typically registered as singletons.
+    Do not inject scoped services directly into a background service.
+    If you need scoped dependencies (e.g., a database context), create a scope manually using
+    `IServiceProvider.CreateScope()` inside `RunAsync`.
+
+    ```csharp
+    public class DatabaseBackgroundService(IServiceProvider serviceProvider)
+    : IBackgroundService
+    {
+        public async Task RunAsync(CancellationToken cancellationToken)
+        {
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                await using var scope = serviceProvider.CreateAsyncScope();
+                var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+                await db.DoWorkAsync(cancellationToken);
+
+                await Task.Delay(TimeSpan.FromSeconds(5), cancellationToken);
+            }
+        }
+    }
+    ```
 
 A background service must implement the `IBackgroundService` interface. Any constructor arguments
 will be injected.
@@ -27,35 +51,33 @@ public class HelloWorldBackgroundService : IBackgroundService
     
     public async Task RunAsync(CancellationToken cancellationToken) 
     {
-        try 
+        while(!cancellationToken.IsCancellationRequested) 
         {
-            while(!cancellationToken.IsCancellationRequested) 
-            {
-                await hws.SayHelloWorldAsync();
-                await Task.Delay(TimeSpan.FromSeconds(5))
-            }    
+            await _hws.SayHelloWorldAsync();
+            await Task.Delay(TimeSpan.FromSeconds(5), cancellationToken);
         }
-        catch (TaskCanceledException) {}        
     }
 }
 ```
 
+If you pass the `CancellationToken` to awaited operations (such as `Task.Delay`), the loop will exit 
+automatically when cancellation is requested. Explicitly catching `TaskCanceledException` is usually not required.
+
 ## Long-Running Services
 
-Wisp will instantiate your service, inject arguments and them call `RunAsync` exactly once when the application starts,
-and then cancel the [`CancellationToken`](https://learn.microsoft.com/en-us/dotnet/standard/parallel-programming/task-cancellation)
+Wisp instantiates your service and calls `RunAsync` once during application startup.
+The method runs in the background and does not block the HTTP server from starting. It will then cancel the
+[`CancellationToken`](https://learn.microsoft.com/en-us/dotnet/standard/parallel-programming/task-cancellation)
 when the application is exiting.
 
-If you need your service to keep running in the background, it is up to you to do so. The recommended way of achieving
-this is a `while` loop that keeps running until the token is canceled. Don't forget to wrap this in a `try/catch` and
-handle the `TaskCanceledException`, which, in this case, does not indicate an error.
+If your service needs to perform continuous work, use a loop that runs until the cancellation token is triggered.
 
 ## Registering a Background Service
 
 Use the `AddBackgroundService<T>` extension method.
 
 ```csharp
-var hostBuilder = new new WispHostBuilder();
+var hostBuilder = new WispHostBuilder();
 
 hostBuilder.AddBackgroundService<HelloWorldBackgroundService>();
 
@@ -72,7 +94,9 @@ Background services start automatically on application start.
 
 ## Stopping Background Services
 
-Wisp will automatically cancel the `CancellationToken` passed to `RunAsync` when the application is shutting down. If you
-need to be able to stop the service from elsewhere, you can pass on the cancellation token instance from within `RunAsync`.
+Wisp will automatically cancel the `CancellationToken` passed to `RunAsync` when the application is shutting down.
 
-Passing your own `CancellationToken` to `RunAsync` is currently not supported.
+If your background service coordinates other long-running operations, you should pass the provided 
+`CancellationToken` to those operations so they can shut down gracefully.
+
+Passing a custom `CancellationToken` to `RunAsync` is not currently supported.

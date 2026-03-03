@@ -30,7 +30,7 @@ For example, a Hello World GET handler would look something like this:
 
 ```csharp
 appBuilder.ConfigureRoutes(router => {
-    router.Get("/", ctx => new { Hello = "World" });
+    router.Get("/", ctx => new ResultBox<object>(new { Hello = "World" }));
 });
 ```
 
@@ -43,8 +43,13 @@ The above code will register a GET handler for `/` that returns the following JS
 ```
 
 The handler function can be synchronous or `async`, the `ctx` parameter is an instance of `IHttpContext` for the current
-request. The expected return for the lambda is `object`. Any returned object will be serialized into JSON by default, unless
-it's a `string` or a value type. Those will be returned to the client as is.
+request. The expected return for the lambda is `IResultBox<>`.
+
+Returned values are handled as follows:
+
+ - value types like `string`, `int`, `bool`, etc. will be converted to their native string representation and sent in the response as `text/plain`
+ - reference types will be serialized into JSON and sent in the response as `application/json`
+
 
 ### HTTP Methods
 
@@ -77,15 +82,15 @@ router.Query()
         // Synchronously
         router.Get("/", ctx => {
             using var scope = ctx.Services.CreateScope();
-            var helloService = scope.GetRequiredService<HelloService>();
-            return helloService.SayHelloWorld();
+            var helloService = scope.ServiceProvider.GetRequiredService<HelloService>();
+            return new ResultBox(helloService.SayHelloWorld());
         });
 
         // Asynchronously
         router.Get("/items", async ctx => {
             await using var scope = ctx.Services.CreateAsyncScope();
-            var service = scope.GetRequiredService<ItemService>();
-            return await service.GetAllAsync();
+            var service = scope.ServiceProvider.GetRequiredService<ItemService>();
+            return await new ResultBox(service.GetAllAsync());
         });
     });
     ```
@@ -108,7 +113,7 @@ public class HelloController : ControllerBase
     }
     
     [Route("/{slug}")]
-    public ViewResult GetArticle(string slug) 
+    public ViewResult GetArticle(string slug, ArticleService articleService) 
     {
         var article = articleService.Get(slug);
         
@@ -125,16 +130,18 @@ public class HelloController : ControllerBase
 
 The route attribute accepts two arguments - the path and the method.
 
- - The method is optional and defaults to `"GET"`
  - The path is required.
+ - The method argument is optional and defaults to `"GET"`
+ - The method argument is a case-sensitive string. *This is a known pain point that needs to be addressed.
+   Ideally, an enum should be used here.*
 
 ### Route Path Syntax
 
-The route path consists of a literal path and any amount of optional variables. The basic
+The route path consists of literal segments and optional variables. The basic
 syntax for a path variable is `{variableName}`.
 
-Optionally, you can specify a type for the variable. If the input doesn't match the type, Wisp
-will throw an error. The type is specified after a colon like this: `{variableName:int}`.
+When injecting path variables as arguments, if the route matches but the input is not compatible with the target type,
+Wisp will throw an exception and return a `500` error.
 
 The available types are:
 
@@ -157,11 +164,11 @@ For example:
  - `/api/v1/action/hello/world`
  - `/api/v1/action/hello/world/foo`
 
-It **will not**, however, match `/api/v1/action`
+It **will not**, however, match `/api/v1/action` or `/api/v1/action/` because the greedy segment must have some input.
 
 ### Multiple Routes
 
-If you need your method to match multiple paths, allow multiple methods, or have an optional variable, you can specify
+If you need your method to match multiple paths, allow multiple HTTP methods, or have an optional variable, you can specify
 more than one `[Route]` attribute on it.
 
 For example:

@@ -57,6 +57,13 @@ public class WispHostBuilder
         ConfigurationBuilder.AddJsonFile("wisp.development.json", optional: true);
     }
 
+    /// <summary>
+    /// Get a temporary service provider containing all services that have been
+    /// registered so far
+    /// </summary>
+    /// <returns></returns>
+    public IServiceProvider GetServiceProvider() => _serviceCollection.BuildServiceProvider();
+
     // /// <summary>
     // /// Set up configuration.
     // /// </summary>

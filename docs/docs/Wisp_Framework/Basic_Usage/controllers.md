@@ -3,8 +3,8 @@ icon: lucide/monitor-cog
 ---
 # Controllers
 
-Controllers in Wisp are classes that handle incoming HTTP requests and return responses in the form of views, JSON, or other data.  
-They are inspired by the familiar ASP.NET MVC model.
+Controllers in Wisp are classes that handle incoming HTTP requests and return responses in the form of views, JSON, or other data.
+They follow a familiar MVC-style model.
 
 ## Controller Type Attribute
 
@@ -23,10 +23,9 @@ public class HelloApiController {}
 ### Priority
 
 Normally, controller priority is determined on a last-in-first-out basis. That means that from two controllers
-that contain the same route, the one added last will actually get to handle the request. Since the order of automatically
-discovered controllers is not guaranteed, this can cause issues if you have conflicting routes like `/{a}/{b}` and `/about/info`,
-if the controller handling `/about/info` is added first, the controller for `/{a}/{b}` will eat the route because it takes
-priority.
+that contain the same route, the one added last will actually get to handle the request. Controller registration
+order is not guaranteed when using automatic discovery. If two controllers define conflicting routes
+(for example `/{a}/{b}` and `/about/info`), the more generic route may capture requests intended for the specific one.
 
 You can explicitly specify a priority for a controller by setting the `priority` argument of `[Controller]`. Controllers
 with a higher priority will be registered last and therefore take precedence. The default priority is `0`, which means
@@ -62,8 +61,9 @@ is higher. Routes matching `/{a}/{b}` but not `/hello/world` will still be corre
 
 ## Routing
 
-Both the controller itself, and the methods within can have a `[Route]` attribute. The final route of a controller action
-is determined by combining both the class-level and method-level `[Route]` attribute values.
+The final route of a controller action is determined by combining both the class-level and method-level [Route] attribute values.
+
+If the method-level route starts with `/`, it is treated as an absolute path and does not combine with the class-level route.
 
 For example:
 
@@ -72,7 +72,7 @@ For example:
 [Route("/api/v1")]
 public class HelloApiController : ControllerBase {
     [Route("hello-world")]
-    public void ResultBox GetHello() {
+    public void IResultBox<string> GetHello() {
         return Ok("Hello World");
     }
 }
@@ -85,7 +85,7 @@ The final path to the `GetHello` controller action will be `/api/v1/hello-world`
 It is highly recommended, though not required, to extend the `ControllerBase` class. This will include some convenience methods
 into your controller.
 
-Here is a non-exhaustive overview of available method.
+Here is a non-exhaustive overview of available methods:
 
 ```csharp
 
@@ -142,7 +142,7 @@ public class HomeController : ControllerBase {
 }
 ```
 
-You can of course also create the ViewResults yourself.
+You can also construct `ViewResult` instances manually if you prefer explicit control.
 
 ```csharp
 [Controller]
@@ -163,6 +163,8 @@ public class HomeController {
 
 When running with `dotnet watch`, Wisp will try to detect hot reloads and re-run controller registration.
 
+Hot reload re-runs controller discovery and route registration, but does not rebuild the DI container.
+
 **This feature is experimental, but enabled by default.** You can disable it by setting `EnableControllerHotReload` in
 the `FeatureFlags` config section to `false`.
 
@@ -177,7 +179,7 @@ the `FeatureFlags` config section to `false`.
 Since this functionality completely re-runs the controller discovery, the behavior should be almost the same as restarting
 the application, with some caveats.
 
-The followind edits should generally be expected to work correctly:
+The following edits should generally be expected to work correctly:
 
  - Controller Action Method Added
  - Controller Action Method Changed

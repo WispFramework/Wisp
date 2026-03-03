@@ -15,7 +15,8 @@ Wisp has the functionality to authenticate users and authorize requests.
 ## Authenticating Users
 
 To authenticate users, you will need an `IAuthenticator`. Wisp ships with a default implementation
-in `BasicAuthenticator`.
+in `BasicAuthenticator`. The basic authenticator handles session storage and principal management.
+Credential verification is entirely up to your application.
 
 The basic authenticator needs a session store. You can use the built-in `InMemorySessionStore` from
 Wisp, add one with an extension or implement one yourself.
@@ -38,12 +39,12 @@ Wisp, add one with an extension or implement one yourself.
       {
          var principal = new UserPrincipal 
          {
-            Username = user.Username;
-            Roles = user.Roles;
-            Id = user.Id;
-            Email = user.Email;
-            FirstName = user.FirstName;
-            LastName = user.LastName;
+            Username = user.Username,
+            Roles = user.Roles,
+            Id = user.Id,
+            Email = user.Email,
+            FirstName = user.FirstName,
+            LastName = user.LastName
          };
 
          await authenticator.Authenticate(principal);
@@ -61,7 +62,9 @@ Wisp, add one with an extension or implement one yourself.
 You can enable authorization for a specific route or an entire controller with the `[Authorize]` attribute.
 
 You can optionally specify a list of allowed roles. By default, any authenticated user will be allowed.
-When one or more roles are specified, only principals with at-least one matching role will be allowed.
+When one or more roles are specified, only principals with at least one matching role will be allowed.
+
+The `[Authorize]` attribute can be applied to individual routes or entire controllers.
 
 ```csharp
 [Route("/")]
@@ -82,15 +85,15 @@ public ViewResult MultipleRoles() => View("settings");
 
 ## Get User Principal
 
-You can get the principal for the current user principal from the authenticator service using the 
-`GetUser()` method. It will return `null` if the user is not authenticated.
+You can retrieve the current user principal from the authenticator service using the `GetUser()` method.
+It will return `null` if the user is not authenticated.
 
 Keep in mind that mapping the principal to a user object from a database or another source is up to you. 
 
 ```csharp
 [Authorize]
 [Route("/profile")]
-public async Task<ViewResult> GetProfile(AuthService auth, UserService userService)
+public async Task<ViewResult> GetProfile(AuthService authService, UserService userService)
 {
     var principal = await auth.GetUser();
     if(principal is null) return Redirect("/login");
@@ -104,5 +107,5 @@ public async Task<ViewResult> GetProfile(AuthService auth, UserService userServi
 
 ## De-Authenticate Users
 
-To deauthenticate a user, simply call the `IAuthenticator.Deauthenticate()` method. This will remove the principal
-from whatever session store you're using.
+To deauthenticate a user, simply call the `IAuthenticator.Deauthenticate()` method. This removes the current 
+principal from the configured session store, effectively ending the user's authenticated session.

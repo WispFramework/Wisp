@@ -4,14 +4,23 @@ icon: lucide/link
 
 # Middleware
 
-Middlewares are services that are executed at different stages between
-receiving a request and returning a response. They can read and manipulate
-both the request and the response.
+Middlewares are services that run at specific stages of the request-response lifecycle.
+They can read and manipulate both the request and the response.
 
 ## Middleware Stages
 
-Middlewares can be called in multiple discrete stages in the Request-Respose
+Middlewares can be called in multiple discrete stages in the Request-Response
 lifecycle.
+
+All middleware methods are asynchronous and may perform awaited operations.
+Avoid blocking calls inside middleware.
+
+Middleware stages execute in the following order:
+
+1. `OnRequestReceived`
+2. `OnRequestRouted`
+3. Controller execution
+4. `OnRequestHandled`
 
 ### `OnRequestReceived`
 
@@ -42,13 +51,20 @@ public class MyMiddleware : HttpMiddleware
     {
         if(context.Request.Headers.GetOrDefaultIgnoreCase("X-Reject-This-Request") == "true") 
         {
-            context.Response.Body = "Forbidden"u8;
-            context.Response.StatusCode = 401;
+            context.Response.Body = new MemoryStream("Forbidden"u8);
+            context.Response.StatusCode = 403;
             context.Response.IsHandled = true;
         }
+
+        return Task.CompletedTask;
     }
 }
 ```
+
+If `context.Response.IsHandled` is set to `true`, the request pipeline stops and subsequent middleware
+and the controller will not be executed.
+
+If `IsHandled` is not set to `true`, execution continues to the next middleware stage.
 
 ## Registering Middleware
 
@@ -88,7 +104,9 @@ in the order they're added.
 MiddlewarePriority is not an enum! It's a struct that contains a few predefined
 static values you can use.
 
-You can also specify a custom numerical priority with `new MiddlwarePriority(int)`. The highest priority is `0` and goes down as the value rises.
+You can also specify a custom numerical priority with `new MiddlewarePriority(int)`. 
+Lower numeric values run earlier in the pipeline. `0` is the highest priority. 
+Larger numbers run later.
 
 !!! info
     **Pro Tip:** If you absolutely need your middleware to always run before

@@ -2,13 +2,13 @@
 
 ## Type Inference
 
-The extension will try to infer the field type for every property. You can also
+The extension attempts to automatically infer the appropriate field type for each property. You can also
 override the type manually by setting `[FieldType(FieldType)]` on the property.
 
 ### Enums
 
-Enums will be rendered as a `#!html <select>` with the item name as the displayed name
-and the numerical enum value as the value.
+Enums are rendered as a `#!html <select>` element, with the enum name as the display label 
+and the underlying numeric value as the option value.
 
 ### Reference Types
 
@@ -66,7 +66,7 @@ Rendered as `#!html <textarea>`
 
 ### Checkbox
 
-Must be specified manually, works the same way as [MultiSelect](#multiselect).
+Must be specified manually.
 
 ### Radio
 
@@ -76,4 +76,4 @@ Must be specified manually, works the same way as [Select](#select)
 
 Must be specified manually.
 
-Rendered as `#!html <select type="color">`
+Rendered as `#!html <input type="color">`

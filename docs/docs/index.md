@@ -1,5 +1,9 @@
 # Welcome to Wisp Framework
 
+## Not big on introductions?
+
+**[Jump straight to Getting Started](/Wisp_Framework/getting-started)**
+
 ## What is Wisp?
 
 Wisp is a lightweight web framework for .NET, designed with one primary goal: to create a web framework that only requires

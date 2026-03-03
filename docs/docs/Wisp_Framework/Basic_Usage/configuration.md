@@ -4,19 +4,21 @@ icon: lucide/cog
 
 # Configuration
 
-Wisp provides flexible configuration options to tailor the framework and your application’s behavior. This page outlines
-the available configuration settings and how to customize them.
+Wisp provides configuration support for both framework behavior and application settings. 
+This page describes the available configuration settings and how to customize them.
 
 ---
 
 ## Configuration Sources
 
-Wisp uses the `Microsoft.Extensions.Configuration` package for loading and managing configuration. It also, by default,
-includes the JSON extension that allows loading JSON files. You can optionally extend this by adding other source type 
-packages.
+Wisp uses the `Microsoft.Extensions.Configuration` package for loading and managing configuration. By default, it
+includes the JSON configuration provider. You can extend this by adding additional configuration providers.
 
-By default, Wisp loads configuration from a JSON file named `wisp.json` located in the application root.  
+Wisp includes a built-in default configuration embedded in the framework assembly.
+If a `wisp.json` file exists in the application root, it will override those defaults.
 You can extend or override this by providing additional configuration sources via the `WispHostBuilder.Configure` method.
+
+Configuration sources are applied in the order they are added, with later sources overriding earlier ones.
 
 Example:
 
@@ -33,8 +35,9 @@ var builder = new WispHostBuilder()
 
 ## Core Configuration Section: `Wisp`
 
-The framework expects a configuration section named `Wisp` that maps to the `WispConfiguration` class. This section
-contains key runtime settings.
+The framework expects a configuration section named `Wisp` that maps to the `WispConfiguration` class. This section contains key runtime settings.
+
+The `Wisp` configuration section has sensible defaults and does not need to be defined unless you want to override specific values.
 
 ### Typical `wisp.json` example:
 
@@ -53,7 +56,7 @@ contains key runtime settings.
 
 | Setting        | Type   | Description                           | Default       |
 |----------------|--------|---------------------------------------|---------------|
-| Host           | string | IP address to bind the HTTP server to | `'127.0.0.1'` |
+| Host           | string | IP address to bind the HTTP server to | `127.0.0.1`   |
 | Port           | int    | TCP port for the HTTP server          | `6969`        |
 | LogLevel       | string | Logging Level                         | `Information` |
 | StaticFileRoot | string | Root directory for static files       | `wwwroot`     |
@@ -65,15 +68,17 @@ contains key runtime settings.
 Wisp uses Microsoft's dependency injection (DI) container to manage services.  
 You can add or modify services during startup using `WispHostBuilder.ConfigureServices`.
 
+See [Dependency Injection](dependency-injection) for more details.
+
 Example:
 
 ```csharp
-var builder = new WispHostBuilder()
-    .ConfigureServices(services =>
-    {
-        services.AddSingleton<IMyService, MyService>();
-        services.Configure<MySettings>(config.GetSection("MySettings"));
-    });
+var builder = new WispHostBuilder();
+
+builder.Services.AddSingleton<IMyService, MyService>();
+
+// The `builder.Configuration` property exposes the underlying `IConfiguration` instance.
+builder.Services.Configure<MySettings>(builder.Configuration.GetRequiredSection("MySettings"));
 ```
 
 This allows you to:
@@ -87,7 +92,15 @@ This allows you to:
 You can enable automatic discovery of services. When this option is enabled, Wisp will scan for compatible types
 with a `[Service]` attribute on startup and automatically add them to the DI container.
 
-```#!csharp hostBuilder.UseServiceDiscovery(Assembly.GetExecutingAssembly());```
+See [Dependency Injection](dependency-injection#service-discovery) for more details.
+
+**Enable Service Discovery**
+
+```csharp
+hostBuilder.UseServiceDiscovery(Assembly.GetExecutingAssembly());
+```
+
+**Register a Service**
 
 ```csharp
 [Service(ServiceLifetime.Scoped)]
@@ -115,7 +128,7 @@ var builder = new WispHostBuilder()
     });
 ```
 
-Behind the scenes, this merges your logging configuration with the defaults, ensuring sensible logging out of the box but giving you full control.
+Your logging configuration is applied after the framework defaults, allowing you to extend or override them.
 
 ---
 
@@ -123,16 +136,15 @@ Behind the scenes, this merges your logging configuration with the defaults, ens
 
 - The router and HTTP server are registered as singletons in DI.
 - The HTTP server listens on the IP and port specified in the configuration (`Host` and `Port`).
-- You can replace the HTTP server implementation by overriding the `IHttpServer` service in `ConfigureServices`.
+- **Advanced:** You can replace the HTTP server implementation by overriding the `IHttpServer` service in `ConfigureServices`.
+
+See [Routing](routing) for details.
 
 ---
 
 ### Templating Configuration
 
-!!! warning
-    This feature is not implemented yet.
-
-You can configure the templating engine using the `WispHostBuilder.ConfigureTemplates` extension method.
+See [Templating](templating) for details.
 
 ---
 
@@ -152,4 +164,4 @@ You can configure the templating engine using the `WispHostBuilder.ConfigureTemp
 
 - Configuration is immutable once `Build()` is called on the host builder.
 - Access configuration values anywhere via DI using `IConfiguration` or bound options classes.
-- Make sure to keep sensitive settings out of source control and use secure secrets management where appropriate.
+- Do not store sensitive settings in source control. Use environment variables or a secure secrets manager.

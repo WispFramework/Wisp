@@ -1,0 +1,10 @@
+{
+    "$schema": "http://json.schemastore.org/template",
+    "author": "Jakub Sycha (utf-8x)",
+    "classifications": [ "Web", "MVC" ],
+    "identity": "Wisp.Framework.Templates.MVC",
+    "name": "Wisp Framework Web MVC",
+    "shortName": "wisp.mvc",
+    "sourceName": "MVC",
+    "preferNameDirectory": true
+}

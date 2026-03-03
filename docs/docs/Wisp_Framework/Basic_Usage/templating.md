@@ -6,14 +6,14 @@ icon: lucide/file-code-corner
 
 Wisp uses the [Fluid](https://github.com/sebastienros/fluid) templating engine,
 which is a C# implementation of the [Shopify Liquid](https://shopify.github.io/liquid/)
-templating language. Fluid is mostly fully compatible with Liquid but we recommend
-using [this unofficial Liquid documentation](https://deanebarker.net/tech/fluid/)
-rather than the Fluid documentation.
+templating language. Fluid is largely compatible with Liquid but we recommend
+referring to the [unofficial Fluid documentation](https://deanebarker.net/tech/fluid/)
+rather than the Liquid documentation.
 
 ## Loading Templates
 
-By default, Wisp looks for template files in the `Templates/` directory in the current
-CWD.
+By default, Wisp looks for template files in the `Templates/` directory relative to 
+the current working directory (CWD).
 
 Template files must have the `.liquid` extension. This is for compatibility reasons as
 most modern IDEs support the Liquid language and the `.liquid` extension but most are not
@@ -21,8 +21,8 @@ aware of the Fluid language and if templates used `.html` or `.fluid`, you would
 lose syntax highlighting and other IDE features.
 
 !!! warning
-    When running your application with `dotnet run`, the CWD for the process is the
-    directory you launched it from.
+    When running your application with `dotnet run`, the current working directory (CWD) 
+    is the project directory.
 
     When launching from an IDE such as Rider or Visual Studio, the CWD is usually set to
     the output directory (`bin/Debug/net10.0`) and so you need to set your template files
@@ -39,8 +39,7 @@ lose syntax highlighting and other IDE features.
     </ItemGroup>
     ```
 
-    That being said, **we recommend using `dotnet run`**, it makes reloading templates
-    much easier.
+    For development, using `dotnet run` simplifies template hot-reloading.
 
 ### Template Hot-Reload
 
@@ -48,8 +47,7 @@ When running in `Debug` mode (e.g. with `dotnet run`), Wisp loads the templates 
 for each request, so when you change a template file while the application is running, the
 next request will use the updated version. No further action or configuration is required.
 
-In `Release` mode, Wisp caches templates aggressively so to apply changes, you will need to
-restart the application.
+In `Release` mode, templates are cached in memory for performance and not reloaded automatically.
 
 ## Passing Data to Templates
 
@@ -61,6 +59,8 @@ All public fields, properties and methods in the passed-in object are available 
 in mind that the object is not passed to the template directly, instead, it's wrapped in a
 `ViewModel` that also provides additional data to the template.
 
+The object you pass to `View()` is available in the template under the `model` variable.
+
 Here is a list of properties available in `ViewModel` (and therefore in a template).
 
 | Property           | Name in Template     | Type                          | Description                                            |
@@ -71,10 +71,12 @@ Here is a list of properties available in `ViewModel` (and therefore in a templa
 | `CurrentUserId`    | `current_user_id`    | `string`                      | Current user's ID                                      |
 | `FlashMessages`    | `flash_messages`     | `List<FlashMessage>`          | Current [Flash Messages](../Middleware/flash-messages) |
 | `Model`            | `model`              | `object?`                     | The passed-in model                                    |
-| `Middleware`       | `middleware`         | `Dictionary<string, object?>` | Additional [Middleware](../Middleware) Data            |
+| `Middleware`       | `middleware`         | `Dictionary<string, object?>` | Additional [Middleware](../Middleware) Data \*           |
+
+*\* These values are populated per request and may be empty depending on which middleware components are active.*
 
 
-To align with the naming conventions of the Fluid language, member names are translated to `snake_case`.
+Public member names are automatically translated to `snake_case` when exposed to the template.
 
 ## Layout
 
@@ -82,7 +84,7 @@ Every template can optionally use a layout. A layout is a special template that 
 area where the inner template is rendered into.
 
 To create a layout, create a new file, for example `_layout.liquid` and put `{% renderbody %}`
-somewhere in the file.
+somewhere in the file. The `{% renderbody %}` tag is replaced with the content of the child template.
 
 ```html title="_layout.liquid"
 <!DOCTYPE html>
@@ -97,8 +99,8 @@ somewhere in the file.
 </body>
 ```
 
-Then, use the layout with the `{% layout %}` directive. Keep in mind all paths in templates are
-relative to the template root (`Templates/`) and there is no need to explicitly include the `.liduid` extension.
+Then use the layout with the `{% layout %}` directive. Keep in mind all paths in templates are
+relative to the template root (`Templates/`) and there is no need to explicitly include the `.liquid` extension.
 
 ```html title="index.liquid"
 {% layout '_layout' %}
@@ -108,8 +110,8 @@ relative to the template root (`Templates/`) and there is no need to explicitly 
 
 ## Partials
 
-You can include partial templates using the `{% include %}` directive. As with layouts, the
-path is relative, and you don't need to specify the extensions.
+You can include partial templates using the `{% include %}` directive. Paths are relative to the 
+template root, and omit the `.liquid` extension.
 
 Included partials have access to the same data as the template that included them.
 
@@ -125,9 +127,9 @@ The Fluid templating engine supports macros. Macros are basically a way of creat
 own template directives.
 
 !!! warning
-    Macros are a feature of Fluid included for convenience but generally considered somewhat
-    unsafe and a code smell. We recommend not using macros unless absolutely neccessary 
-    (for example when proper recursion is needed).
+    Macros are a feature of Fluid included for convenience but often considered a code smell.
+    We recommend not using macros unless absolutely necessary (for example when proper 
+    recursion is needed).
 
     **The general rule of thumb is that if you can't do it in a template without macros, it
     should probably be done in C#.**
@@ -154,6 +156,7 @@ And then include it and call it like so:
 
 !!! warning
     Templating configuration is not implemented yet.
+    This section shows what this configuration may look like in the future.
 
 In Liquid/Fluid, a filter is a function that transforms data in a template. 
 
@@ -176,5 +179,6 @@ hostBuilder.ConfigureTemplates(t =>
     t.AddFilter("filterName", MyFilterClass.MyFilterMethod);
 });
 ```
+
 
 *[CWD]: Current Working Directory

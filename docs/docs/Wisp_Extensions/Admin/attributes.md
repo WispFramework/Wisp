@@ -6,34 +6,35 @@ This is a list of attributes provided by the Admin extension.
 
 ### `[GenerateCrud]`
 
-Tells the extension to generate CRUD pages for this type.
+Marks an entity type for automatic CRUD page generation.
 
 ## Property Attributes
 
 ### `[IgnoreField]`
 
-Tells the form builder to ignore this property. The form builder will also ignore
-propeties with `[NotMapped]`. It will also ignore the `Id` property everywhere
-except for the detail and edit pages, where it will be shown as readonly.
+Instructs the form generator to exclude this property from generated forms.
+
+Properties marked with `[NotMapped]` are also ignored automatically.
+
+The `Id` property is ignored in create forms, but shown as read-only on detail and edit pages.
 
 ### `[DisabledField]`
 
-The field for this property will be rendered as `disabled` and the extension will
-never try to write to it.
+Renders the field as `disabled` in generated forms and prevents the extension
+from attempting to write values to this property.
 
 ### `[FieldLabel(string)]`
 
-Allows you to explicitly set a label for the field. By default, the label is the
-property name.
+Overrides the default field label. By default, the property name is used.
 
 ### `[FieldType(FieldType)]`
 
-Allows you to override the field type, in case the extension determines it wrong.
+Overrides the automatically inferred field type for this property.
 See [field types](field-types) for more info.
 
 ### `[ValueSource(string)]`
 
-The name of the `DbSet` property in your `DbContext` that contains the items for
-this property.
+Specifies the name of the `DbSet` property in your `DbContext`
+that provides selectable values for this property.
 
 See [foreign keys](foreign-keys) for more info.
