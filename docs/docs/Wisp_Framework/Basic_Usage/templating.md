@@ -154,31 +154,51 @@ And then include it and call it like so:
 
 ## Custom Filters
 
-!!! warning
-    Templating configuration is not implemented yet.
-    This section shows what this configuration may look like in the future.
+In Liquid/Fluid, a **filter** is a function that transforms a value in a template.
 
-In Liquid/Fluid, a filter is a function that transforms data in a template. 
+For example:
 
-For example: `#!handlebars {{ 'Hello World' | upcase }}` would render as `HELLO WORLD`.
+`#!handlebars {{ 'Hello World' | upcase }}`
 
-The Fluid templating engine used in Wisp supports adding custom filters.
+renders as:
 
-To add a custom filter, first create a static function somewhere with the following signature. The function can, but does
-not have to be `async`.
+`HELLO WORLD`
 
-```csharp
-public static ValueTask<FluidValue> MyFilter(FluidValue input, FilterArguments args, TemplateContext context) {}
-```
+The Fluid templating engine used by Wisp supports registering custom filters.
 
-And then register it with the `WispHostBuilder.ConfigureTemplates` extension method.
+### Implementing a Filter
+
+A Fluid filter is a static method or instance method with the following signature.
+The method must return `ValueTask<FluidValue>` and may be asynchronous.
 
 ```csharp
-hostBuilder.ConfigureTemplates(t => 
+public static ValueTask<FluidValue> MyFilter(
+    FluidValue input,
+    FilterArguments args,
+    TemplateContext context)
 {
-    t.AddFilter("filterName", MyFilterClass.MyFilterMethod);
-});
+    // transform input
+}
 ```
+
+### Registering a Filter
+
+Filters are registered using `WispHostBuilder.AddTemplateFilter`.
+
+The first argument specifies the name used in templates.
+The second argument is the method implementing the filter.
+
+```csharp
+var hostBuilder = new WispHostBuilder();
+
+hostBuilder.AddTemplateFilter("name", MyFilterClass.MyFilterMethod);
+```
+
+### Instance Methods
+
+Filters can also be instance methods. In this case you will need an instance of the class containing the filter method.
+
+**Pro Tip:** When registering instance methods, the [Late Registration](dependency-injection#late-registration) feature can be useful for resolving dependencies from the DI container.
 
 
 *[CWD]: Current Working Directory

@@ -143,3 +143,33 @@ hostBuilder.Services.AddSingleton<MyService>();
 
 var myServiceInstance = hostBuilder.GetServiceProvider().GetRequiredService<MyService>()
 ```
+
+### Late Registration
+
+In some edge cases you may need to register services at the very end of the
+initialization phase, immediately before the final `IServiceProvider` is built during `WispHostBuilder.Build()`.
+This is useful when a registration requires resolving services that have already
+been added to the container.
+
+You can use the `WispHostBuilder.AddDoLast` method to register a callback to do just that.
+
+For example, [this mechanism is used](https://github.com/WispFramework/Wisp/commit/72586c31716dcfe9d053fd8af92f91bac8ced629#diff-6fc2ece7cd1c82e0fd71a6f6cb03204b564cbed4346f55c2de3e8e70d765f45aR12-R20) 
+in the [L18n extension](../../Wisp_Extensions/Localization/about/) to register template filters that depend on services that must already exist in the container.
+
+The `AddDoLast` method accepts a function that takes one parameter of the type `WispHostBuilder`.
+This gives the callback access to the entire builder, not just the service collection.
+
+Note that `GetServiceProvider()` creates a temporary service provider containing
+all services registered so far.
+
+**Example:**
+
+```csharp
+var hostBuilder = new WispHostBuilder();
+
+hostBuilder.AddDoLast(builder => {
+    var instance = builder.GetServiceProvider().GetRequiredService<TemplateFilters>();
+
+    builder.AddTemplateFilter("demo", instance.DemoFilter);
+});
+```

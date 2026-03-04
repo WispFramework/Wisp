@@ -37,6 +37,35 @@ but before calling the controller.
 
 This method is called after the controller method has returned.
 
+### `OnTemplateRendering(ViewModel)`
+
+This method is called immediately before a template is rendered. It is not executed for 
+routes that return non-templated responses (e.g. JSON API routes).
+
+This can be useful for injecting common template data such as locale information,
+user preferences, or request-specific metadata.
+
+For example, the following middleware reads a locale value from a request header
+and injects it into the `ViewModel`.
+
+```csharp
+public class LocaleMiddleware(IHttpContextAccessor contextAccessor) : HttpMiddleware 
+{
+    public override Task OnTemplateRendering(ViewModel vm) 
+    {
+        var request = contextAccessor.HttpContext?.Request;
+        if(request is null) return Task.CompletedTask;
+
+        if(request.Headers.TryGetValue("X-Wisp-Locale", out var locale)) 
+        {
+            vm.Locale = locale;
+        }
+
+        return Task.CompletedTask;
+    }
+}
+```
+
 ## Writing Custom Middleware
 
 Custom middleware needs to implement the `IHttpMiddleware` interface. The
