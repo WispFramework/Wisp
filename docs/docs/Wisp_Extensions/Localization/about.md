@@ -4,7 +4,7 @@ icon: lucide/languages
 
 # About
 
-The `Wisp.Extensions.L10n` extension adds localization functionality to Wisp.
+The `Wisp.Extensions.I18n` extension adds localization functionality to Wisp.
 
 !!! warning
     This extension is in early development stages. Some of the functionality described
@@ -12,17 +12,17 @@ The `Wisp.Extensions.L10n` extension adds localization functionality to Wisp.
 
 ## Installation
 
-1. Install the `Wisp.Extensions.L10n` NuGet package
+1. Install the `Wisp.Extensions.I18n` NuGet package
    ```shell
-   dotnet add package Wisp.Extensions.L10n
+   dotnet add package Wisp.Extensions.I18n
    ```
-2. Enable the L10n package in your `HostBuilder`
+2. Enable the I18n package in your `HostBuilder`
    ```csharp
-   hostBuilder.AddL10n();
+   hostBuilder.AddI18n();
    ```
-3. Create a `L10n/` directory in the root of your project
+3. Create a `I18n/` directory in the root of your project
 4. [Generate POT Files](#generating-translation-templates-pot)
-5. Put your translated `.po` files in `L10n/`
+5. Put your translated `.po` files in `I18n/`
 6. You are ready to start translating your application!
 
 ## Generating Translation Templates (POT)
